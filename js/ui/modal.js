@@ -1,7 +1,7 @@
 import { S } from '../state.js';
 import { serverList, serverRead, serverWrite, serverMtime } from '../file.js';
 import { extractSnapshotsFromText, refreshHistoryPanel, takeSnapshot } from '../history.js';
-import { openInNewTab, newTab, renderTabBar } from '../tabs.js';
+import { openInNewTab, newTab, renderTabBar, loadIntoCurrentTab, syncModal } from '../tabs.js';
 
 export function closeModal() {
   document.getElementById('startupModal').style.display = 'none';
@@ -24,11 +24,7 @@ function buildFileList(files, container, searchValue) {
     item.addEventListener('click', async () => {
       try {
         const text = await serverRead(name);
-        closeModal();
-        openInNewTab(name, text);
-        // Update mtime after opening
-        const mtime = await serverMtime(name);
-        if (mtime !== null) S.lastKnownMtime = mtime;
+        loadIntoCurrentTab(name, text);
         document.getElementById('statusText').textContent = `Opened: ${name}`;
       } catch(e) {
         document.getElementById('statusText').textContent = 'Read failed: ' + e.message;
@@ -94,8 +90,7 @@ export function initModal() {
     try {
       const blank = 'flowchart TD\n';
       await serverWrite(name, blank);
-      closeModal();
-      newTab(name);
+      loadIntoCurrentTab(name, blank);
       document.getElementById('statusText').textContent = `Created: ${name}`;
     } catch(e) {
       document.getElementById('statusText').textContent = 'Create failed: ' + e.message;

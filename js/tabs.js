@@ -26,6 +26,13 @@ export function captureTabState() {
   }
 }
 
+export function syncModal() {
+  const modal = document.getElementById('startupModal');
+  if (!modal) return;
+  const hasFile = S.activeTabIdx >= 0 && S.tabs[S.activeTabIdx] && S.tabs[S.activeTabIdx].filename;
+  modal.style.display = hasFile ? 'none' : '';
+}
+
 export function restoreTabState(tab) {
   S.currentFilename = tab.filename;
   S.nodes = tab.nodes;
@@ -48,11 +55,14 @@ export function restoreTabState(tab) {
   // Update filename display
   const display = document.getElementById('filenameDisplay');
   if (display) display.textContent = S.currentFilename || 'No file';
-  // Start file watcher for this tab's file
+  // Start/stop file watcher
+  const { startFileWatcher, stopFileWatcher } = window._editorFile || {};
   if (S.currentFilename) {
-    const { startFileWatcher } = window._editorFile || {};
     if (startFileWatcher) startFileWatcher(S.currentFilename);
+  } else {
+    if (stopFileWatcher) stopFileWatcher();
   }
+  syncModal();
 }
 
 export function renderTabBar() {
@@ -80,7 +90,7 @@ export function switchTab(idx) {
   if (idx === S.activeTabIdx) return;
   captureTabState();
   S.activeTabIdx = idx;
-  restoreTabState(S.tabs[idx]);
+  restoreTabState(S.tabs[idx]);  // syncModal called inside restoreTabState
   const { render } = window._editorRender || {};
   if (render) render();
   renderTabBar();
@@ -89,22 +99,18 @@ export function switchTab(idx) {
 }
 
 export function closeTab(idx) {
-  // Capture current state before closing
   if (idx === S.activeTabIdx) captureTabState();
   S.tabs.splice(idx, 1);
   if (S.tabs.length === 0) {
     S.activeTabIdx = -1;
-    // Show startup modal
-    const modal = document.getElementById('startupModal');
-    if (modal) modal.style.display = 'flex';
     renderTabBar();
+    syncModal();
     return;
   }
-  // Determine which tab to switch to
   let newIdx = idx;
   if (newIdx >= S.tabs.length) newIdx = S.tabs.length - 1;
   S.activeTabIdx = newIdx;
-  restoreTabState(S.tabs[newIdx]);
+  restoreTabState(S.tabs[newIdx]);  // syncModal called inside
   const { render } = window._editorRender || {};
   if (render) render();
   renderTabBar();
@@ -161,10 +167,42 @@ export function newTab(filename) {
   };
   S.tabs.push(tab);
   S.activeTabIdx = S.tabs.length - 1;
-  restoreTabState(tab);
+  restoreTabState(tab);  // syncModal called inside
   const { render } = window._editorRender || {};
   if (render) render();
   renderTabBar();
   const { takeSnapshot } = window._editorHistory || {};
-  if (takeSnapshot) takeSnapshot('New file');
+  if (takeSnapshot && filename) takeSnapshot('New file');
+}
+
+// Load a file into the current no-file tab, or create a new tab if none exists.
+export function loadIntoCurrentTab(filename, mmdText) {
+  const currentTab = S.tabs[S.activeTabIdx];
+  if (!currentTab || currentTab.filename) {
+    // No pending tab — open in a new tab instead
+    openInNewTab(filename, mmdText);
+    return;
+  }
+  // Adopt the pending tab
+  currentTab.filename = filename;
+  S.currentFilename = filename;
+  const display = document.getElementById('filenameDisplay');
+  if (display) display.textContent = filename;
+
+  const { loadFromMermaidText } = window._editorLoad || {};
+  if (loadFromMermaidText && mmdText) loadFromMermaidText(mmdText, false);
+
+  const { takeSnapshot } = window._editorHistory || {};
+  if (takeSnapshot) takeSnapshot('Opened file');
+
+  if (filename) {
+    const { serverMtime, startFileWatcher } = window._editorFile || {};
+    if (serverMtime) serverMtime(filename).then(m => { if (m !== null) S.lastKnownMtime = m; });
+    if (startFileWatcher) startFileWatcher(filename);
+  }
+
+  const { render } = window._editorRender || {};
+  if (render) render();
+  renderTabBar();
+  syncModal();
 }

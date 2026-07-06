@@ -4,7 +4,7 @@ import { render, updateUndoRedo } from './render.js';
 import { loadFromMermaidText } from './loader.js';
 import { takeSnapshot, scheduleSnapshot, buildFileContent, refreshHistoryPanel, initHistoryPanel } from './history.js';
 import { scheduleSave, doAutoSave, startFileWatcher, serverMtime, initFilenameRename } from './file.js';
-import { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab } from './tabs.js';
+import { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab, loadIntoCurrentTab, syncModal } from './tabs.js';
 import { initCanvasEvents, initToolbar, initKeyboard, addNode, addGroup, addEdge, deleteSelected, copySelection, pasteClipboard, duplicateSelection, getPortMousedownHandler, spawnConnectGhost } from './events.js';
 import { initInline, activateInline, cancelInline } from './ui/inline.js';
 import { buildShapeDropdown, setCurrentShape } from './ui/shapeDropdown.js';
@@ -20,7 +20,7 @@ window._editorMutations = { addEdge, takeSnapshot, addNode, deleteSelected, copy
 window._editorFile = { scheduleSave, doAutoSave, startFileWatcher, serverMtime };
 window._editorLoad = { loadFromMermaidText };
 window._editorHistory = { refreshHistoryPanel, takeSnapshot, buildFileContent };
-window._editorTabs = { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab };
+window._editorTabs = { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab, loadIntoCurrentTab, syncModal };
 window._editorPortHandlers = { onPortMousedown: getPortMousedownHandler() };
 window._editorEvents = { spawnConnectGhost };
 
@@ -44,6 +44,10 @@ function init() {
     const ep = document.getElementById('exportDropdownPanel');
     if (ep) ep.classList.remove('open');
   });
+
+  // Create initial no-file tab so the modal has a tab to attach to
+  newTab();
+  renderTabBar();
 
   // Server lifecycle ping
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
