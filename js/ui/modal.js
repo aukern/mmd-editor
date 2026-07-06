@@ -87,6 +87,10 @@ export function initModal() {
     let name = document.getElementById('newFileInput').value.trim();
     if (!name) return;
     if (!name.endsWith('.mmd')) name += '.mmd';
+    if (cachedFiles.includes(name)) {
+      document.getElementById('statusText').textContent = `"${name}" already exists — open it instead.`;
+      return;
+    }
     try {
       const blank = 'flowchart TD\n';
       await serverWrite(name, blank);

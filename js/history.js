@@ -5,10 +5,9 @@ export function decodeSnap(b) { try { return JSON.parse(decodeURIComponent(escap
 
 export function takeSnapshot(label) {
   clearTimeout(S.snapshotTimer); S.pendingSnapshotLabel = null;
-  // Ensure mmdOut is current before reading
-  const { updateMermaidOutput } = window._editorRender || {};
-  if (updateMermaidOutput) updateMermaidOutput();
-  const mmd = document.getElementById('mmdOut').value;
+  // Build mermaid text directly from state — no DOM dependency
+  const { getMermaidText } = window._editorRender || {};
+  const mmd = getMermaidText ? getMermaidText() : (document.getElementById('mmdOut')?.value || '');
   if (!mmd || !mmd.trim()) return;
   const ts = new Date().toISOString().slice(0,19).replace('T',' ');
   S.snapshots.push({ts, label, mmd});
@@ -41,7 +40,8 @@ export function stripSnapLines(text) {
 
 export function buildFileContent() {
   const snapLines = S.snapshots.map(s => `%% snap:${encodeSnap(s)}`).join('\n');
-  const diag = document.getElementById('mmdOut').value;
+  const { getMermaidText } = window._editorRender || {};
+  const diag = getMermaidText ? getMermaidText() : (document.getElementById('mmdOut')?.value || '');
   return snapLines ? (snapLines + '\n' + diag) : diag;
 }
 

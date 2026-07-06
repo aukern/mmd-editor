@@ -1,6 +1,6 @@
 import { S } from './state.js';
 import { applyTransform, pushUndo, cloneState, fitAll, setZoom, svgPoint, nodeSize, uid } from './utils.js';
-import { render, updateUndoRedo, updateMermaidOutput } from './render.js';
+import { render, updateUndoRedo, updateMermaidOutput, getMermaidText } from './render.js';
 import { loadFromMermaidText } from './loader.js';
 import { takeSnapshot, scheduleSnapshot, buildFileContent, refreshHistoryPanel, initHistoryPanel } from './history.js';
 import { scheduleSave, doAutoSave, startFileWatcher, serverMtime, initFilenameRename } from './file.js';
@@ -14,7 +14,7 @@ import { autoArrange } from './layout.js';
 
 // ── Expose globals so cross-module callbacks work without circular imports ─────
 window._editorUtils = { pushUndo, cloneState, fitAll, setZoom, applyTransform, svgPoint, nodeSize };
-window._editorRender = { render, updateMermaidOutput };
+window._editorRender = { render, updateMermaidOutput, getMermaidText };
 window._editorInline = { activateInline, scheduleSnapshot };
 window._editorMutations = { addEdge, takeSnapshot, addNode, deleteSelected, copySelection, pasteClipboard, duplicateSelection };
 window._editorFile = { scheduleSave, doAutoSave, startFileWatcher, serverMtime };

@@ -7,25 +7,6 @@
 </head>
 <body>
 
-<!-- Startup modal -->
-<div id="startupModal">
-  <div class="modal-card" id="modalCard">
-    <div class="modal-icon">⬡</div>
-    <h2>Mermaid Editor</h2>
-    <p id="modalSubtitle">Open an existing .mmd file or create a new one. All changes auto-save.</p>
-    <button class="modal-btn primary" id="modalOpenBtn">Open existing file…</button>
-    <input type="text" id="fileSearchInput" placeholder="Search files…" style="display:none">
-    <div id="fileNoMatch" style="display:none;padding:6px 10px;color:var(--muted);font-size:12px;text-align:left">No files match.</div>
-    <div id="fileListPanel"></div>
-    <div id="fileListHint">Files are served from the editor folder.</div>
-    <button class="modal-btn secondary" id="modalNewBtn" style="margin-top:8px">Create new file…</button>
-    <div id="newFileRow" style="display:none;margin-top:8px">
-      <input type="text" id="newFileInput" placeholder="filename.mmd">
-      <button class="modal-btn primary" id="modalNewConfirmBtn" style="margin-top:6px">Create</button>
-    </div>
-  </div>
-</div>
-
 <!-- Inline editor input (positioned absolutely over canvas) -->
 <input id="inlineInput" type="text">
 
@@ -108,6 +89,24 @@
 
 <div id="main">
   <div id="canvasWrap">
+    <!-- Startup modal — inside canvasWrap so tab bar stays accessible -->
+    <div id="startupModal">
+      <div class="modal-card" id="modalCard">
+        <div class="modal-icon">⬡</div>
+        <h2>Mermaid Editor</h2>
+        <p id="modalSubtitle">Open an existing .mmd file or create a new one. All changes auto-save.</p>
+        <button class="modal-btn primary" id="modalOpenBtn">Open existing file…</button>
+        <input type="text" id="fileSearchInput" placeholder="Search files…" style="display:none">
+        <div id="fileNoMatch" style="display:none;padding:6px 10px;color:var(--muted);font-size:12px;text-align:left">No files match.</div>
+        <div id="fileListPanel"></div>
+        <div id="fileListHint">Files are served from the editor folder.</div>
+        <button class="modal-btn secondary" id="modalNewBtn" style="margin-top:8px">Create new file…</button>
+        <div id="newFileRow" style="display:none;margin-top:8px">
+          <input type="text" id="newFileInput" placeholder="filename.mmd">
+          <button class="modal-btn primary" id="modalNewConfirmBtn" style="margin-top:6px">Create</button>
+        </div>
+      </div>
+    </div>
     <svg id="canvas">
       <defs>
         <marker id="mk-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c7c7d1"/></marker>

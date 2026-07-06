@@ -84,6 +84,12 @@ export function renderTabBar() {
     el.appendChild(label); el.appendChild(close);
     bar.appendChild(el);
   });
+  const addBtn = document.createElement('div');
+  addBtn.className = 'tab-add';
+  addBtn.textContent = '+';
+  addBtn.title = 'New tab';
+  addBtn.addEventListener('click', () => newTab());
+  bar.appendChild(addBtn);
 }
 
 export function switchTab(idx) {
@@ -117,10 +123,8 @@ export function closeTab(idx) {
 }
 
 export function openInNewTab(filename, mmdText) {
-  // Capture current tab state first
   captureTabState();
-  // Create new tab state
-  const newTab = {
+  const tab = {
     filename,
     nodes: [], edges: [], groups: [], classDefs: {}, direction: 'TD',
     undoStack: [], redoStack: [],
@@ -130,27 +134,24 @@ export function openInNewTab(filename, mmdText) {
     snapshots: [], snapAlways: false,
     multiSelect: [], multiSelectEdges: [],
   };
-  S.tabs.push(newTab);
+  S.tabs.push(tab);
   S.activeTabIdx = S.tabs.length - 1;
-  restoreTabState(newTab);
-  // Load content
+  restoreTabState(tab);
   const { loadFromMermaidText } = window._editorLoad || {};
-  if (loadFromMermaidText && mmdText) {
-    loadFromMermaidText(mmdText, false);
-  }
+  if (loadFromMermaidText && mmdText) loadFromMermaidText(mmdText, false);
+  // Keep tab.snapshots in sync after loadFromMermaidText may have replaced S.snapshots
+  S.tabs[S.activeTabIdx].snapshots = S.snapshots;
   const { takeSnapshot } = window._editorHistory || {};
   if (takeSnapshot) takeSnapshot('Opened file');
-  // Update mtime
   if (filename) {
     const { serverMtime, startFileWatcher } = window._editorFile || {};
-    if (serverMtime) {
-      serverMtime(filename).then(m => { if (m !== null) S.lastKnownMtime = m; });
-    }
+    if (serverMtime) serverMtime(filename).then(m => { if (m !== null) S.lastKnownMtime = m; });
     if (startFileWatcher) startFileWatcher(filename);
   }
   const { render } = window._editorRender || {};
   if (render) render();
   renderTabBar();
+  syncModal();
 }
 
 export function newTab(filename) {

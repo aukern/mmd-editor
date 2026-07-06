@@ -95,7 +95,7 @@ function shapeToken(n) {
   }
 }
 
-export function updateMermaidOutput() {
+export function getMermaidText() {
   const lines = ['flowchart ' + S.direction];
   Object.entries(S.classDefs).forEach(([name, cd]) => {
     const props = []; if (cd.fill) props.push('fill:'+cd.fill); if (cd.stroke) props.push('stroke:'+cd.stroke); if (cd.color) props.push('color:'+cd.color);
@@ -116,7 +116,11 @@ export function updateMermaidOutput() {
     if (n.style) { const props = []; if (n.style.fill) props.push('fill:'+n.style.fill); if (n.style.stroke) props.push('stroke:'+n.style.stroke); if (n.style.color) props.push('color:'+n.style.color); if (props.length) lines.push(`    style ${n.id} ${props.join(',')}`); }
   });
   S.nodes.forEach(n => { (n.classes||[]).forEach(cls => lines.push(`    class ${n.id} ${cls}`)); });
-  document.getElementById('mmdOut').value = lines.join('\n');
+  return lines.join('\n');
+}
+
+export function updateMermaidOutput() {
+  document.getElementById('mmdOut').value = getMermaidText();
 }
 
 export function updatePropsPanel() {
