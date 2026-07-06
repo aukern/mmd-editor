@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mermaid Visual Editor</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Startup modal -->
+<div id="startupModal" style="display:none">
+  <div class="modal-card" id="modalCard">
+    <div class="modal-icon">⬡</div>
+    <h2>Mermaid Editor</h2>
+    <p id="modalSubtitle">Open an existing .mmd file or create a new one. All changes auto-save.</p>
+    <button class="modal-btn primary" id="modalOpenBtn">Open existing file…</button>
+    <input type="text" id="fileSearchInput" placeholder="Search files…" style="display:none">
+    <div id="fileNoMatch" style="display:none;padding:6px 10px;color:var(--muted);font-size:12px;text-align:left">No files match.</div>
+    <div id="fileListPanel"></div>
+    <div id="fileListHint">Files are served from the editor folder.</div>
+    <button class="modal-btn secondary" id="modalNewBtn" style="margin-top:8px">Create new file…</button>
+    <div id="newFileRow" style="display:none;margin-top:8px">
+      <input type="text" id="newFileInput" placeholder="filename.mmd">
+      <button class="modal-btn primary" id="modalNewConfirmBtn" style="margin-top:6px">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inline editor input (positioned absolutely over canvas) -->
+<input id="inlineInput" type="text">
+
+<!-- Menu bar -->
+<div id="menuBar"></div>
+
+<!-- Tab bar -->
+<div id="tabBar"></div>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <h1>⬡ MMD</h1>
+  <span id="filenameDisplay" title="Double-click to rename">No file</span>
+  <span id="saveStatus"></span>
+  <div class="sep"></div>
+  <button id="newBtn">New</button>
+  <select id="directionSelect" title="Flow direction">
+    <option value="TD">↓ TD</option>
+    <option value="LR">→ LR</option>
+    <option value="BT">↑ BT</option>
+    <option value="RL">← RL</option>
+  </select>
+  <div class="sep"></div>
+  <button id="addNodeBtn">+ Node</button>
+  <!-- Shape dropdown -->
+  <div class="shape-dropdown" id="shapeDropdownWrap">
+    <div class="shape-dropdown-btn" id="shapeDropdownBtn" title="Node shape">
+      <svg id="shapeDropdownPreview" width="40" height="26" viewBox="0 0 40 26"></svg>
+      <span id="shapeDropdownLabel">Rectangle</span>
+      <span style="color:var(--muted)">▾</span>
+    </div>
+    <div class="shape-dropdown-panel" id="shapeDropdownPanel"></div>
+  </div>
+  <button id="addGroupBtn">+ Group</button>
+  <div class="sep"></div>
+  <button id="connectBtn" title="Toggle connect mode (C)">🔗 Connect</button>
+  <select id="arrowSelect">
+    <option value="arrow">──▶ Arrow</option>
+    <option value="line">─── Line</option>
+    <option value="dotted-arrow">┄┄▶ Dotted arrow</option>
+    <option value="dotted-line">┄┄┄ Dotted line</option>
+    <option value="thick-arrow">══▶ Thick arrow</option>
+    <option value="thick-line">═══ Thick line</option>
+    <option value="circle-arrow">──○ Circle end</option>
+    <option value="cross-arrow">──✕ Cross end</option>
+    <option value="bidirectional">◀─▶ Bidirectional</option>
+    <option value="circle-both">○──○ Circle both</option>
+    <option value="cross-both">✕──✕ Cross both</option>
+    <option value="thick-bidir">◀═▶ Thick bidir</option>
+    <option value="dotted-bidir">◀┄▶ Dotted bidir</option>
+  </select>
+  <div class="sep"></div>
+  <button id="undoBtn" title="Undo (Ctrl+Z)" disabled>↩</button>
+  <button id="redoBtn" title="Redo (Ctrl+Y)" disabled>↪</button>
+  <div class="sep"></div>
+  <button id="zoomOutBtn" title="Zoom out">−</button>
+  <span id="zoomLabel">100%</span>
+  <button id="zoomInBtn" title="Zoom in">+</button>
+  <button id="fitBtn" title="Fit">Fit</button>
+  <div class="sep"></div>
+  <button id="snapGridBtn" title="Toggle grid snap (Alt+drag also snaps)">⊞ Grid</button>
+  <button id="snapshotBtn" title="Save snapshot (Ctrl+S)">📷</button>
+  <div class="sep"></div>
+  <button id="deleteBtn" class="danger" title="Delete (Del)">🗑</button>
+  <button id="arrangeBtn" title="Auto-arrange">↻</button>
+  <div class="sep"></div>
+  <button id="historyBtn" title="Version history">🕐 History</button>
+  <!-- Export dropdown -->
+  <div class="export-dropdown" id="exportDropdownWrap">
+    <button class="export-dropdown-btn" id="exportDropdownBtn" title="Export">⬇ Export ▾</button>
+    <div class="export-dropdown-panel" id="exportDropdownPanel">
+      <div class="export-option" data-action="svg">Export SVG</div>
+      <div class="export-option" data-action="png">Export PNG</div>
+      <div class="export-option" data-action="pdf">Export PDF (print)</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <span class="hint" id="statusText" style="max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">Ready</span>
+</div>
+
+<div id="main">
+  <div id="canvasWrap">
+    <svg id="canvas">
+      <defs>
+        <marker id="mk-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c7c7d1"/></marker>
+        <marker id="mk-arrow-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ff8c6c"/></marker>
+        <marker id="mk-circle" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><circle cx="5" cy="5" r="4" fill="#c7c7d1"/></marker>
+        <marker id="mk-circle-sel" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><circle cx="5" cy="5" r="4" fill="#ff8c6c"/></marker>
+        <marker id="mk-cross" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1,1 L9,9 M9,1 L1,9" stroke="#c7c7d1" stroke-width="1.8" fill="none"/></marker>
+        <marker id="mk-cross-sel" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1,1 L9,9 M9,1 L1,9" stroke="#ff8c6c" stroke-width="1.8" fill="none"/></marker>
+      </defs>
+      <g id="root">
+        <g id="groupsLayer"></g>
+        <g id="edgesLayer"></g>
+        <g id="nodesLayer"></g>
+        <g id="portsLayer"></g>
+        <g id="overlayLayer"></g>
+      </g>
+    </svg>
+  </div>
+
+  <div id="sidebar">
+    <div id="propPanel" class="sb-section">
+      <h2 id="propTitle">Properties</h2>
+      <div id="nodeProps" style="display:none">
+        <div class="sb-row tight"><label>ID</label><input type="text" id="propNodeId"></div>
+        <div class="sb-row tight"><label>Label</label><input type="text" id="propNodeLabel"></div>
+        <div class="sb-row tight"><label>Shape</label>
+          <select id="propShapeSelect" style="flex:1">
+            <option value="rect">Rectangle</option><option value="rounded">Rounded</option>
+            <option value="stadium">Stadium</option><option value="subroutine">Subroutine</option>
+            <option value="cylinder">Cylinder</option><option value="circle">Circle</option>
+            <option value="doubleCircle">Double circle</option><option value="asymmetric">Asymmetric</option>
+            <option value="rhombus">Rhombus</option><option value="hexagon">Hexagon</option>
+            <option value="parallelogram">Parallelogram</option><option value="parallelogramAlt">Parallelogram alt</option>
+            <option value="trapezoid">Trapezoid</option><option value="trapezoidAlt">Trapezoid alt</option>
+            <option value="delay">Delay</option><option value="manualInput">Manual input</option>
+            <option value="doc">Document</option><option value="display">Display</option>
+            <option value="hourglass">Hourglass</option>
+          </select>
+        </div>
+        <div class="sb-row tight">
+          <label>Fill</label><input type="color" id="propFill">
+          <label style="margin-left:4px">Stroke</label><input type="color" id="propStroke">
+          <label style="margin-left:4px">Text</label><input type="color" id="propTextColor">
+        </div>
+        <div class="sb-row tight" style="margin-top:3px"><button id="propClearStyle" style="flex:1;font-size:11px;padding:3px">Clear style</button></div>
+        <div id="classChecks" style="margin-top:6px;display:none">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Classes</div>
+          <div id="classCheckList"></div>
+        </div>
+      </div>
+      <div id="edgeProps" style="display:none">
+        <div class="sb-row tight"><label>Type</label>
+          <select id="propEdgeType" style="flex:1">
+            <option value="arrow">──▶ Arrow</option><option value="line">─── Line</option>
+            <option value="dotted-arrow">┄┄▶ Dotted</option><option value="dotted-line">┄┄┄ Dotted line</option>
+            <option value="thick-arrow">══▶ Thick</option><option value="thick-line">═══ Thick line</option>
+            <option value="circle-arrow">──○ Circle</option><option value="cross-arrow">──✕ Cross</option>
+            <option value="bidirectional">◀─▶ Bidir</option><option value="circle-both">○──○</option>
+            <option value="cross-both">✕──✕</option><option value="thick-bidir">◀═▶ Thick bidir</option>
+            <option value="dotted-bidir">◀┄▶ Dotted bidir</option>
+          </select>
+        </div>
+        <div class="sb-row tight"><label>Label</label><input type="text" id="propEdgeLabel"></div>
+      </div>
+      <div id="groupProps" style="display:none">
+        <div class="sb-row tight"><label>Title</label><input type="text" id="propGroupTitle"></div>
+        <div class="sb-row tight"><label>Direction</label>
+          <select id="propGroupDir" style="flex:1">
+            <option value="">inherit</option><option value="TD">TD</option>
+            <option value="LR">LR</option><option value="BT">BT</option><option value="RL">RL</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <h2>Class definitions</h2>
+      <div id="classDefList" style="margin-bottom:8px"></div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Add classDef</div>
+      <div class="sb-row tight"><label>Name</label><input type="text" id="cdName" placeholder="e.g. myClass"></div>
+      <div class="sb-row tight">
+        <label>Fill</label><input type="color" id="cdFill" value="#2d5a2d">
+        <label style="margin-left:4px">Stroke</label><input type="color" id="cdStroke" value="#4caf50">
+        <label style="margin-left:4px">Text</label><input type="color" id="cdText" value="#e6e6ea">
+      </div>
+      <button id="cdAddBtn" style="width:100%;margin-top:4px;font-size:11px">Add class</button>
+    </div>
+
+    <div class="sb-section" style="flex:1;display:flex;flex-direction:column;gap:6px">
+      <h2>Mermaid source (.mmd)</h2>
+      <textarea id="mmdOut" readonly></textarea>
+      <div class="btn-row">
+        <button id="copyBtn">Copy</button>
+        <button id="saveAsBtn">Save As…</button>
+        <button id="downloadBtn">Download</button>
+      </div>
+      <h2 style="margin-top:6px">Load / paste Mermaid</h2>
+      <textarea id="mmdIn" placeholder="flowchart LR&#10;    A[Start] --> B{Decision}"></textarea>
+      <div class="btn-row">
+        <button id="loadBtn">Load</button>
+        <button id="uploadBtn">Open .mmd</button>
+      </div>
+      <input type="file" id="fileInput" accept=".mmd,.txt" style="display:none">
+      <p class="hint">
+        <b>Drag from node edge</b> to create arrows. <b>Double-click</b> nodes/edges to rename inline.<br>
+        <b>Ctrl+scroll</b>=zoom · <b>Ctrl+drag</b>=pan · <b>Drag empty</b>=rubber-band select<br>
+        <b>Shift+click</b>=add to selection · <b>Ctrl+C/V</b>=copy/paste · <b>Ctrl+D</b>=duplicate<br>
+        <b>Del</b>=delete · <b>C</b>=connect mode · <b>Ctrl+Z/Y</b>=undo/redo · <b>Alt+drag</b>=snap
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- History panel -->
+<div id="historyPanel">
+  <div class="hp-header">
+    <span>Version History</span>
+    <button id="historyCloseBtn">✕</button>
+  </div>
+  <div id="historyList"><div id="noSnapshotsMsg">No snapshots yet.<br>Snapshots are taken after meaningful changes.</div></div>
+  <div id="historyPreview">
+    <textarea id="historyPreviewText" readonly></textarea>
+    <button class="hp-restore-btn" id="historyRestoreBtn">Restore this version</button>
+  </div>
+</div>
+
+<!-- Reload toast -->
+<div id="reloadToast">
+  <span id="reloadToastMsg">File changed externally</span>
+  <button id="reloadToastReload">Reload</button>
+  <button id="reloadToastDismiss">Dismiss</button>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
