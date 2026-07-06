@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
-python3 launch.py
+nohup python3 launch.py &>/dev/null &
