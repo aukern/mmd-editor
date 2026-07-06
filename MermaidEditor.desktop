@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Mermaid Editor
+Comment=Visual Mermaid diagram editor
+Exec=bash -c "cd /home/daniel/Repos/mmd-editor && python3 launch.py"
+Icon=utilities-terminal
+Terminal=true
+Type=Application
+Categories=Development;
+StartupNotify=false

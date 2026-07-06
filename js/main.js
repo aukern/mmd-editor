@@ -10,7 +10,7 @@ import { initInline, activateInline, cancelInline } from './ui/inline.js';
 import { buildShapeDropdown, setCurrentShape } from './ui/shapeDropdown.js';
 import { initModal } from './ui/modal.js';
 import { buildMenuBar, buildExportDropdown } from './ui/menu.js';
-import { autoArrange, fitGroupsToMembers } from './layout.js';
+import { autoArrange } from './layout.js';
 
 // ── Expose globals so cross-module callbacks work without circular imports ─────
 window._editorUtils = { pushUndo, cloneState, fitAll, setZoom, applyTransform, svgPoint, nodeSize };
@@ -44,52 +44,6 @@ function init() {
     const ep = document.getElementById('exportDropdownPanel');
     if (ep) ep.classList.remove('open');
   });
-
-  // Seed example (same as original)
-  const gid = addGroup(70, 70);
-  const foundGroup = S.groups.find(g => g.id === gid);
-  if (foundGroup) foundGroup.title = 'Validation';
-  const na = addNode(160, 130, 'Start', 'stadium');
-  const nb = addNode(160, 240, 'Valid?', 'rhombus');
-  const nbNode = S.nodes.find(n => n.id === nb);
-  const naNode = S.nodes.find(n => n.id === na);
-  if (nbNode) nbNode.parent = gid;
-  if (naNode) naNode.parent = gid;
-  const nc = addNode(500, 130, 'Process', 'rect');
-  const nd = addNode(500, 240, 'Error log', 'cylinder');
-  const ndNode = S.nodes.find(n => n.id === nd);
-  if (ndNode) ndNode.style = { fill: '#4a2222', stroke: '#c0504d' };
-  const ne = addNode(820, 130, 'Done', 'doubleCircle');
-  const nf = addNode(500, 370, 'Retry', 'delay');
-  addEdge(na, nb, '', 'arrow');
-  addEdge(nb, nc, 'Yes', 'arrow');
-  addEdge(nb, nd, 'No', 'dotted-arrow');
-  addEdge(nc, ne, '', 'thick-arrow');
-  addEdge(nd, nf, '', 'dotted-bidir');
-  fitGroupsToMembers();
-  S.undoStack = []; S.redoStack = []; updateUndoRedo();
-  S.snapshots = []; clearTimeout(S.snapshotTimer);
-  S.zoom = 1; S.panX = 40; S.panY = 40;
-  render();
-
-  // Create initial tab for this seed state
-  const seedTab = {
-    filename: null,
-    nodes: JSON.parse(JSON.stringify(S.nodes)),
-    edges: JSON.parse(JSON.stringify(S.edges)),
-    groups: JSON.parse(JSON.stringify(S.groups)),
-    classDefs: JSON.parse(JSON.stringify(S.classDefs)),
-    direction: S.direction,
-    undoStack: [], redoStack: [],
-    zoom: S.zoom, panX: S.panX, panY: S.panY,
-    selected: null,
-    nextNodeNum: S.nextNodeNum, nextEdgeNum: S.nextEdgeNum, nextGroupNum: S.nextGroupNum,
-    snapshots: [], snapAlways: false,
-    multiSelect: [], multiSelectEdges: [],
-  };
-  S.tabs.push(seedTab);
-  S.activeTabIdx = 0;
-  renderTabBar();
 
   // Server lifecycle ping
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {

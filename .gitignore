@@ -1,0 +1,3 @@
+diagrams/
+__pycache__/
+.server.pid

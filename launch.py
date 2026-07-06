@@ -9,6 +9,7 @@ Mermaid Editor launcher.
 import http.server
 import json
 import os
+import signal
 import socket
 import sys
 import threading
@@ -18,9 +19,27 @@ import webbrowser
 from pathlib import Path
 
 DIR = Path(__file__).parent
+DIAGRAMS_DIR = DIR / "diagrams"
+PID_FILE = DIR / ".server.pid"
 IDLE_TIMEOUT = 300  # seconds
 
 last_ping = time.time()
+
+# ── Kill any previous instance ────────────────────────────────────────────────
+if PID_FILE.exists():
+    try:
+        old_pid = int(PID_FILE.read_text().strip())
+        os.kill(old_pid, signal.SIGTERM)
+        time.sleep(0.5)
+    except (ProcessLookupError, ValueError, PermissionError):
+        pass
+    try:
+        PID_FILE.unlink()
+    except FileNotFoundError:
+        pass
+
+PID_FILE.write_text(str(os.getpid()))
+DIAGRAMS_DIR.mkdir(exist_ok=True)
 
 
 def find_free_port(start=8080):
@@ -35,11 +54,11 @@ def find_free_port(start=8080):
 
 
 def safe_path(name):
-    """Resolve a filename relative to DIR, rejecting path traversal."""
+    """Resolve a filename relative to DIAGRAMS_DIR, rejecting path traversal."""
     if not name:
         return None
-    p = (DIR / name).resolve()
-    if not str(p).startswith(str(DIR.resolve())):
+    p = (DIAGRAMS_DIR / name).resolve()
+    if not str(p).startswith(str(DIAGRAMS_DIR.resolve())):
         return None
     return p
 
@@ -62,7 +81,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         if self.path == "/api/list":
-            files = sorted(p.name for p in DIR.glob("*.mmd"))
+            files = sorted(p.name for p in DIAGRAMS_DIR.glob("*.mmd"))
             return self._json(200, files)
 
         if self.path.startswith("/api/read"):
@@ -153,6 +172,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 def _shutdown():
     time.sleep(0.3)
+    try:
+        PID_FILE.unlink()
+    except FileNotFoundError:
+        pass
     print("\nServer stopped.")
     os._exit(0)
 
