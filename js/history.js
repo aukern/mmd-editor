@@ -16,6 +16,7 @@ export function takeSnapshot(label) {
   if (S.activeTabIdx >= 0 && S.tabs[S.activeTabIdx]) {
     S.tabs[S.activeTabIdx].snapshots = S.snapshots;
   }
+  console.log('[history] takeSnapshot:', label, '| total snaps:', S.snapshots.length);
   const { scheduleSave } = window._editorFile || {};
   if (scheduleSave) scheduleSave();
   refreshHistoryPanel();
@@ -48,6 +49,7 @@ export function buildFileContent() {
 let selectedSnapIndex = -1;
 
 export function refreshHistoryPanel() {
+  console.log('[history] refreshHistoryPanel called | S.snapshots.length:', S.snapshots.length);
   const list = document.getElementById('historyList');
   const noMsg = document.getElementById('noSnapshotsMsg');
   const preview = document.getElementById('historyPreview');

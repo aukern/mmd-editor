@@ -7,7 +7,33 @@ export function closeModal() {
   document.getElementById('startupModal').style.display = 'none';
 }
 
-function buildFileList(files, container, searchValue) {
+function showFileError(msg) {
+  let el = document.getElementById('fileOpenError');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'fileOpenError';
+    el.style.cssText = 'color:#c0504d;font-size:11px;padding:6px 10px;text-align:left';
+    document.getElementById('fileListPanel').before(el);
+  }
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+
+function showCreateError(msg) {
+  let el = document.getElementById('newFileError');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'newFileError';
+    el.style.cssText = 'color:#c0504d;font-size:11px;margin-top:4px;text-align:left';
+    document.getElementById('newFileInput').insertAdjacentElement('afterend', el);
+  }
+  el.textContent = msg;
+  el.style.display = msg ? '' : 'none';
+  if (msg) document.getElementById('newFileInput').style.borderColor = '#c0504d';
+  else document.getElementById('newFileInput').style.borderColor = '';
+}
+
+function buildFileList(files, container, searchValue, onOpen) {
   container.innerHTML = '';
   const noMatch = document.getElementById('fileNoMatch');
   const query = (searchValue || '').toLowerCase();
@@ -21,21 +47,7 @@ function buildFileList(files, container, searchValue) {
     const item = document.createElement('div');
     item.className = 'file-item';
     item.textContent = name;
-    let opening = false;  // prevent double-open on slow reads
-    item.addEventListener('click', async () => {
-      if (opening) return;
-      opening = true;
-      item.style.opacity = '0.5';
-      try {
-        const text = await serverRead(name);
-        loadIntoCurrentTab(name, text);
-        document.getElementById('statusText').textContent = `Opened: ${name}`;
-      } catch(e) {
-        document.getElementById('statusText').textContent = 'Read failed: ' + e.message;
-        opening = false;
-        item.style.opacity = '';
-      }
-    });
+    item.addEventListener('click', () => onOpen(name, item));
     container.appendChild(item);
   });
 }
@@ -54,12 +66,40 @@ export function initModal() {
   }
 
   let cachedFiles = [];
+  // Shared lock — only one file open at a time
+  let isOpening = false;
+
+  async function openFile(name, itemEl) {
+    if (isOpening) return;
+    isOpening = true;
+    if (itemEl) itemEl.style.opacity = '0.5';
+    showFileError('');
+    // Optimistically update the tab label before the async read completes
+    const { renderTabBar } = window._editorTabs || {};
+    if (S.activeTabIdx >= 0 && S.tabs[S.activeTabIdx] && !S.tabs[S.activeTabIdx].filename) {
+      S.tabs[S.activeTabIdx].filename = name;  // show name immediately
+      if (renderTabBar) renderTabBar();
+    }
+    try {
+      const text = await serverRead(name);
+      loadIntoCurrentTab(name, text);
+      document.getElementById('statusText').textContent = `Opened: ${name}`;
+    } catch(e) {
+      // Revert optimistic update on failure
+      if (S.activeTabIdx >= 0 && S.tabs[S.activeTabIdx]) S.tabs[S.activeTabIdx].filename = null;
+      if (renderTabBar) renderTabBar();
+      showFileError('Read failed: ' + e.message);
+      isOpening = false;
+      if (itemEl) itemEl.style.opacity = '';
+    }
+  }
 
   document.getElementById('modalOpenBtn').addEventListener('click', async () => {
     const panel = document.getElementById('fileListPanel');
-    if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+    if (panel.style.display === 'block') { panel.style.display = 'none'; showFileError(''); return; }
     panel.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px">Loading…</div>';
     panel.style.display = 'block';
+    isOpening = false;  // reset lock whenever file list is freshly opened
     cachedFiles = await serverList();
     panel.innerHTML = '';
     if (!cachedFiles.length) {
@@ -70,32 +110,36 @@ export function initModal() {
     if (searchInput) {
       searchInput.style.display = 'block';
       searchInput.value = '';
-      buildFileList(cachedFiles, panel, '');
-      searchInput.oninput = () => buildFileList(cachedFiles, panel, searchInput.value);
+      buildFileList(cachedFiles, panel, '', openFile);
+      searchInput.oninput = () => buildFileList(cachedFiles, panel, searchInput.value, openFile);
     } else {
-      buildFileList(cachedFiles, panel, '');
+      buildFileList(cachedFiles, panel, '', openFile);
     }
   });
 
   document.getElementById('fileSearchInput').addEventListener('input', function() {
     const panel = document.getElementById('fileListPanel');
-    if (panel.style.display === 'block') buildFileList(cachedFiles, panel, this.value);
+    if (panel.style.display === 'block') buildFileList(cachedFiles, panel, this.value, openFile);
   });
 
   document.getElementById('modalNewBtn').addEventListener('click', () => {
     const row = document.getElementById('newFileRow');
-    row.style.display = row.style.display === 'none' ? 'block' : 'none';
-    if (row.style.display === 'block') document.getElementById('newFileInput').focus();
+    const showing = row.style.display !== 'none' && row.style.display !== '';
+    row.style.display = showing ? 'none' : 'block';
+    if (!showing) {
+      document.getElementById('newFileInput').focus();
+      showCreateError('');
+    }
   });
 
   async function createNewFile() {
     let name = document.getElementById('newFileInput').value.trim();
     if (!name) return;
     if (!name.endsWith('.mmd')) name += '.mmd';
-    // Always fetch fresh list to check for duplicates
+    showCreateError('');
     if (!cachedFiles.length) cachedFiles = await serverList();
     if (cachedFiles.includes(name)) {
-      document.getElementById('statusText').textContent = `"${name}" already exists — open it instead.`;
+      showCreateError(`"${name}" already exists — open it instead.`);
       document.getElementById('newFileInput').select();
       return;
     }
@@ -106,10 +150,17 @@ export function initModal() {
       loadIntoCurrentTab(name, blank);
       document.getElementById('statusText').textContent = `Created: ${name}`;
     } catch(e) {
-      document.getElementById('statusText').textContent = 'Create failed: ' + e.message;
+      showCreateError('Create failed: ' + e.message);
     }
   }
 
   document.getElementById('modalNewConfirmBtn').addEventListener('click', createNewFile);
-  document.getElementById('newFileInput').addEventListener('keydown', ev => { if (ev.key === 'Enter') createNewFile(); });
+  document.getElementById('newFileInput').addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') createNewFile();
+    if (ev.key !== 'Enter') showCreateError('');  // clear error on typing
+  });
+  document.getElementById('newFileInput').addEventListener('input', () => {
+    showCreateError('');
+    document.getElementById('newFileInput').style.borderColor = '';
+  });
 }
