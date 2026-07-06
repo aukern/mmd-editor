@@ -103,7 +103,8 @@ export function initHistoryPanel() {
     }
   });
   // Snapshot button — take snapshot and open the history panel to confirm
-  document.getElementById('snapshotBtn').addEventListener('click', () => {
+  document.getElementById('snapshotBtn').addEventListener('click', ev => {
+    ev.stopPropagation();  // prevent document handler from closing the panel immediately
     takeSnapshot('Manual');
     document.getElementById('statusText').textContent = 'Snapshot saved.';
     document.getElementById('historyPanel').classList.add('open');

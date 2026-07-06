@@ -21,13 +21,19 @@ function buildFileList(files, container, searchValue) {
     const item = document.createElement('div');
     item.className = 'file-item';
     item.textContent = name;
+    let opening = false;  // prevent double-open on slow reads
     item.addEventListener('click', async () => {
+      if (opening) return;
+      opening = true;
+      item.style.opacity = '0.5';
       try {
         const text = await serverRead(name);
         loadIntoCurrentTab(name, text);
         document.getElementById('statusText').textContent = `Opened: ${name}`;
       } catch(e) {
         document.getElementById('statusText').textContent = 'Read failed: ' + e.message;
+        opening = false;
+        item.style.opacity = '';
       }
     });
     container.appendChild(item);
@@ -57,10 +63,9 @@ export function initModal() {
     cachedFiles = await serverList();
     panel.innerHTML = '';
     if (!cachedFiles.length) {
-      panel.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px">No .mmd files found in the editor folder.</div>';
+      panel.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px">No .mmd files found.</div>';
       return;
     }
-    // Show search
     const searchInput = document.getElementById('fileSearchInput');
     if (searchInput) {
       searchInput.style.display = 'block';
@@ -87,13 +92,17 @@ export function initModal() {
     let name = document.getElementById('newFileInput').value.trim();
     if (!name) return;
     if (!name.endsWith('.mmd')) name += '.mmd';
+    // Always fetch fresh list to check for duplicates
+    if (!cachedFiles.length) cachedFiles = await serverList();
     if (cachedFiles.includes(name)) {
       document.getElementById('statusText').textContent = `"${name}" already exists — open it instead.`;
+      document.getElementById('newFileInput').select();
       return;
     }
     try {
       const blank = 'flowchart TD\n';
       await serverWrite(name, blank);
+      cachedFiles.push(name);
       loadIntoCurrentTab(name, blank);
       document.getElementById('statusText').textContent = `Created: ${name}`;
     } catch(e) {
