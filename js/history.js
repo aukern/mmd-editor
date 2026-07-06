@@ -5,11 +5,18 @@ export function decodeSnap(b) { try { return JSON.parse(decodeURIComponent(escap
 
 export function takeSnapshot(label) {
   clearTimeout(S.snapshotTimer); S.pendingSnapshotLabel = null;
+  // Ensure mmdOut is current before reading
+  const { updateMermaidOutput } = window._editorRender || {};
+  if (updateMermaidOutput) updateMermaidOutput();
   const mmd = document.getElementById('mmdOut').value;
-  if (!mmd.trim()) return;
+  if (!mmd || !mmd.trim()) return;
   const ts = new Date().toISOString().slice(0,19).replace('T',' ');
   S.snapshots.push({ts, label, mmd});
   if (S.snapshots.length > 50) S.snapshots.shift();
+  // Keep active tab's snapshots in sync
+  if (S.activeTabIdx >= 0 && S.tabs[S.activeTabIdx]) {
+    S.tabs[S.activeTabIdx].snapshots = S.snapshots;
+  }
   const { scheduleSave } = window._editorFile || {};
   if (scheduleSave) scheduleSave();
   refreshHistoryPanel();
@@ -95,9 +102,10 @@ export function initHistoryPanel() {
       panel.classList.remove('open');
     }
   });
-  // Snapshot button
+  // Snapshot button — take snapshot and open the history panel to confirm
   document.getElementById('snapshotBtn').addEventListener('click', () => {
     takeSnapshot('Manual');
     document.getElementById('statusText').textContent = 'Snapshot saved.';
+    document.getElementById('historyPanel').classList.add('open');
   });
 }

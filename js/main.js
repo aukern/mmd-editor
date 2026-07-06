@@ -1,6 +1,6 @@
 import { S } from './state.js';
 import { applyTransform, pushUndo, cloneState, fitAll, setZoom, svgPoint, nodeSize, uid } from './utils.js';
-import { render, updateUndoRedo } from './render.js';
+import { render, updateUndoRedo, updateMermaidOutput } from './render.js';
 import { loadFromMermaidText } from './loader.js';
 import { takeSnapshot, scheduleSnapshot, buildFileContent, refreshHistoryPanel, initHistoryPanel } from './history.js';
 import { scheduleSave, doAutoSave, startFileWatcher, serverMtime, initFilenameRename } from './file.js';
@@ -14,7 +14,7 @@ import { autoArrange } from './layout.js';
 
 // ── Expose globals so cross-module callbacks work without circular imports ─────
 window._editorUtils = { pushUndo, cloneState, fitAll, setZoom, applyTransform, svgPoint, nodeSize };
-window._editorRender = { render };
+window._editorRender = { render, updateMermaidOutput };
 window._editorInline = { activateInline, scheduleSnapshot };
 window._editorMutations = { addEdge, takeSnapshot, addNode, deleteSelected, copySelection, pasteClipboard, duplicateSelection };
 window._editorFile = { scheduleSave, doAutoSave, startFileWatcher, serverMtime };
@@ -48,6 +48,11 @@ function init() {
   // Create initial no-file tab so the modal has a tab to attach to
   newTab();
   renderTabBar();
+
+  // Periodic auto-snapshot every 2 minutes (only when a file is open)
+  setInterval(() => {
+    if (S.currentFilename) takeSnapshot('Auto');
+  }, 2 * 60 * 1000);
 
   // Server lifecycle ping
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {

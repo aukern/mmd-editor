@@ -191,6 +191,8 @@ export function loadIntoCurrentTab(filename, mmdText) {
 
   const { loadFromMermaidText } = window._editorLoad || {};
   if (loadFromMermaidText && mmdText) loadFromMermaidText(mmdText, false);
+  // loadFromMermaidText may replace S.snapshots with a new array; keep tab in sync
+  currentTab.snapshots = S.snapshots;
 
   const { takeSnapshot } = window._editorHistory || {};
   if (takeSnapshot) takeSnapshot('Opened file');
