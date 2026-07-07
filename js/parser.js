@@ -85,6 +85,7 @@ export function extractNodeToken(token) {
 
 export function parseMermaid(text) {
   const newNodes = new Map(), newEdges = [], newGroups = [], newClassDefs = {}, classAssignments = [], directStyles = [];
+  const groupIdSet = new Set(); // track subgraph IDs so proxy re-declarations are skipped
   let dir = 'TD';
   const rawLines = text.split('\n').map(l=>l.trim()).filter(l=>l&&!/^%%/.test(l));
   const firstLine = rawLines[0];
@@ -95,6 +96,7 @@ export function parseMermaid(text) {
   }
   function mergeNode(tok) {
     if (!tok) return;
+    if (groupIdSet.has(tok.id)) return; // subgraph proxy — never create a standalone node
     const ex = newNodes.get(tok.id) || {label:tok.id,shape:'rect',parent:null,classes:[]};
     if (tok.label != null) ex.label = tok.label;
     if (tok.shape) ex.shape = tok.shape;
@@ -105,7 +107,7 @@ export function parseMermaid(text) {
   const groupStack = [];
   rawLines.forEach(line => {
     const sgMatch = line.match(/^subgraph\s+(.+)$/i);
-    if (sgMatch) { let rest=sgMatch[1].trim(); let gid,title; const m=rest.match(/^([A-Za-z0-9_]+)\s*\[\s*"?(.*?)"?\s*\]$/); if(m){gid=m[1];title=m[2];}else{gid=rest.replace(/\s+/g,'_');title=rest;} newGroups.push({id:gid,title,x:0,y:0,w:260,h:160,direction:''}); groupStack.push(gid); return; }
+    if (sgMatch) { let rest=sgMatch[1].trim(); let gid,title; const m=rest.match(/^([A-Za-z0-9_]+)\s*\[\s*"?(.*?)"?\s*\]$/); if(m){gid=m[1];title=m[2];}else{gid=rest.replace(/\s+/g,'_');title=rest;} newGroups.push({id:gid,title,x:0,y:0,w:260,h:160,direction:''}); groupIdSet.add(gid); groupStack.push(gid); return; }
     if (/^end$/i.test(line)) { groupStack.pop(); return; }
     if (/^direction\s+(TD|TB|LR|BT|RL)$/i.test(line)) { const dm=line.match(/^direction\s+(TD|TB|LR|BT|RL)$/i); const cg=groupStack[groupStack.length-1]; if(dm&&cg){const grp=newGroups.find(g=>g.id===cg);if(grp)grp.direction=dm[1].toUpperCase();} return; }
     const cdm = line.match(/^classDef\s+(\S+)\s+(.+)$/i); if(cdm){newClassDefs[cdm[1]]=parseStyleProps(cdm[2]);return;}

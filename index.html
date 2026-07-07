@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>Mermaid Visual Editor</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 
@@ -22,7 +24,6 @@
   <span id="filenameDisplay" title="Double-click to rename">No file</span>
   <span id="saveStatus"></span>
   <div class="sep"></div>
-  <button id="newBtn">New</button>
   <select id="directionSelect" title="Flow direction">
     <option value="TD">↓ TD</option>
     <option value="LR">→ LR</option>
@@ -102,13 +103,25 @@
         <div id="fileListHint">Files are served from the editor folder.</div>
         <button class="modal-btn secondary" id="modalNewBtn" style="margin-top:8px">Create new file…</button>
         <div id="newFileRow" style="display:none;margin-top:8px">
-          <input type="text" id="newFileInput" placeholder="filename.mmd">
-          <button class="modal-btn primary" id="modalNewConfirmBtn" style="margin-top:6px">Create</button>
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+            <select id="newFolderSelect" title="Folder" style="flex:1;min-width:0;font-size:11px;padding:4px 6px;background:#2e2f38;color:var(--text);border:1px solid var(--border);border-radius:5px;"></select>
+            <span style="color:var(--muted);font-size:12px;flex-shrink:0">/</span>
+            <input type="text" id="newFileInput" placeholder="filename" style="flex:2;min-width:0">
+          </div>
+          <button class="modal-btn primary" id="modalNewConfirmBtn">Create</button>
         </div>
       </div>
     </div>
+    <div id="previewBanner" style="display:none;position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(26,27,32,0.92);border:1px solid var(--accent2);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--accent2);white-space:nowrap;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.5)">
+      <span>Preview mode — move nodes freely</span>
+      <button id="previewAcceptBtn" style="background:#2a4a2a;color:#4caf50;border:1px solid #4caf50;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer">✓ Restore</button>
+      <button id="previewCancelBtn" style="background:#2e2f38;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer">✕ Cancel</button>
+    </div>
     <svg id="canvas">
       <defs>
+        <pattern id="dot-grid" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+          <circle cx="0" cy="0" r="0.6" fill="#363740"/>
+        </pattern>
         <marker id="mk-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c7c7d1"/></marker>
         <marker id="mk-arrow-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ff8c6c"/></marker>
         <marker id="mk-circle" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><circle cx="5" cy="5" r="4" fill="#c7c7d1"/></marker>
@@ -117,6 +130,8 @@
         <marker id="mk-cross-sel" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1,1 L9,9 M9,1 L1,9" stroke="#ff8c6c" stroke-width="1.8" fill="none"/></marker>
       </defs>
       <g id="root">
+        <!-- grid is inside #root so it gets the same transform — guaranteed dot alignment with snap grid -->
+        <rect id="gridBg" x="-50016" y="-50016" width="100032" height="100032" fill="url(#dot-grid)" pointer-events="none"/>
         <g id="groupsLayer"></g>
         <g id="edgesLayer"></g>
         <g id="nodesLayer"></g>
@@ -228,18 +243,18 @@
   </div>
   <div id="historyList"><div id="noSnapshotsMsg">No snapshots yet.<br>Snapshots are taken after meaningful changes.</div></div>
   <div id="historyPreview">
-    <textarea id="historyPreviewText" readonly></textarea>
-    <button class="hp-restore-btn" id="historyRestoreBtn">Restore this version</button>
+    <div id="historyPreviewInfo" style="font-size:11px;color:var(--muted);padding:4px 0;line-height:1.4"></div>
+    <div style="display:flex;gap:6px;margin-top:4px">
+      <button class="hp-restore-btn" id="historyRestoreBtn" style="flex:1">✓ Restore</button>
+      <button id="historyCancelBtn" style="flex:1;background:#2e2f38;color:var(--text);border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:11.5px;padding:4px 7px">✕ Cancel</button>
+    </div>
   </div>
 </div>
 
-<!-- Reload toast -->
-<div id="reloadToast">
-  <span id="reloadToastMsg">File changed externally</span>
-  <button id="reloadToastReload">Reload</button>
-  <button id="reloadToastDismiss">Dismiss</button>
-</div>
 
-<script type="module" src="js/main.js"></script>
+<script src="js/vendor/dagre.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: false, theme: 'base' });</script>
+<script type="module" src="js/main.js?v=6"></script>
 </body>
 </html>

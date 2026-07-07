@@ -23,6 +23,9 @@ export const S = {
   snapAlways: false,
   tabs: [],
   activeTabIdx: -1,
+  previewMode: false,
+  previewSaved: null,
+  mutationCount: 0,
 };
 
 export function resetS() {

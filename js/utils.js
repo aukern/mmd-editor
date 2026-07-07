@@ -13,6 +13,7 @@ export function svgPoint(ev) {
 export function applyTransform() {
   document.getElementById('root').setAttribute('transform', `translate(${S.panX},${S.panY}) scale(${S.zoom})`);
   document.getElementById('zoomLabel').textContent = Math.round(S.zoom * 100) + '%';
+  // Grid rect lives inside #root — it gets the same transform automatically, no extra work needed.
 }
 
 export function setZoom(z, cx, cy) {
@@ -41,6 +42,7 @@ export function fitAll() {
 export function snapGrid(v) { return Math.round(v / 24) * 24; }
 
 export function nodeSize(n) {
+  if (n._w !== undefined) return { w: n._w, h: n._h };
   const lines = (n.label || '').split('\n');
   const maxLen = Math.max(...lines.map(l => l.length), 3);
   let w = Math.max(70, maxLen * 8 + 30), h = 34 + lines.length * 16;
@@ -83,6 +85,7 @@ export function cloneState() {
 }
 
 export function pushUndo() {
+  if (S.previewMode) return;
   S.undoStack.push(cloneState());
   if (S.undoStack.length > 80) S.undoStack.shift();
   S.redoStack = [];

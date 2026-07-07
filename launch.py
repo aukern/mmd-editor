@@ -9,9 +9,9 @@ Mermaid Editor launcher.
 import http.server
 import json
 import os
+import re
 import signal
-import socket
-import sys
+import subprocess
 import threading
 import time
 import urllib.parse
@@ -25,40 +25,46 @@ IDLE_TIMEOUT = 300  # seconds
 
 last_ping = time.time()
 
-# ── Kill any previous instance ────────────────────────────────────────────────
-if PID_FILE.exists():
+# ── Kill whatever is occupying port 8080 (our old instance or anything else) ──
+def kill_port(port):
     try:
-        old_pid = int(PID_FILE.read_text().strip())
-        os.kill(old_pid, signal.SIGTERM)
-        time.sleep(0.5)
-    except (ProcessLookupError, ValueError, PermissionError):
-        pass
-    try:
-        PID_FILE.unlink()
-    except FileNotFoundError:
+        result = subprocess.run(["ss", "-tlnpH", f"sport = :{port}"],
+                                capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            m = re.search(r'pid=(\d+)', line)
+            if m:
+                pid = int(m.group(1))
+                if pid != os.getpid():
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except (ProcessLookupError, PermissionError):
+                        pass
+    except Exception:
         pass
 
+kill_port(8080)
+time.sleep(0.6)  # let OS release the port
+try:
+    PID_FILE.unlink()
+except FileNotFoundError:
+    pass
+
+PORT = 8080
 PID_FILE.write_text(str(os.getpid()))
 DIAGRAMS_DIR.mkdir(exist_ok=True)
 
 
-def find_free_port(start=8080):
-    for port in range(start, start + 50):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.bind(("", port))
-                return port
-            except OSError:
-                continue
-    return start
-
+_DIAGRAMS_NORM = os.path.normpath(str(DIAGRAMS_DIR)) + os.sep
 
 def safe_path(name):
-    """Resolve a filename relative to DIAGRAMS_DIR, rejecting path traversal."""
+    """Validate name is within DIAGRAMS_DIR. Uses normpath (not resolve) so
+    symlinks pointing outside diagrams/ are allowed — only path traversal via
+    '..' is blocked."""
     if not name:
         return None
-    p = (DIAGRAMS_DIR / name).resolve()
-    if not str(p).startswith(str(DIAGRAMS_DIR.resolve())):
+    p = DIAGRAMS_DIR / name
+    norm = os.path.normpath(str(p))
+    if not (norm + os.sep).startswith(_DIAGRAMS_NORM):
         return None
     return p
 
@@ -66,6 +72,11 @@ def safe_path(name):
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(DIR), **kwargs)
+
+    def end_headers(self):
+        # Prevent browser from caching CSS/JS — ensures fresh files on every reload
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        super().end_headers()
 
     # ── routing ──────────────────────────────────────────────────────────────
     def do_GET(self):
@@ -81,7 +92,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         if self.path == "/api/list":
-            files = sorted(p.name for p in DIAGRAMS_DIR.glob("*.mmd"))
+            files = []
+            for root, dirs, fnames in os.walk(str(DIAGRAMS_DIR), followlinks=True):
+                dirs.sort()
+                for fname in sorted(fnames):
+                    if fname.endswith('.mmd'):
+                        rel = os.path.relpath(os.path.join(root, fname), str(DIAGRAMS_DIR))
+                        files.append(rel)
             return self._json(200, files)
 
         if self.path.startswith("/api/read"):
@@ -125,6 +142,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return self._text(403, "forbidden")
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length).decode("utf-8")
+            p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(body, encoding="utf-8")
             return self._text(200, "ok")
 
@@ -143,6 +161,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if new_p.exists():
                 return self._text(409, "target already exists")
             old_p.rename(new_p)
+            return self._text(200, "ok")
+
+        if self.path.startswith("/api/mkdir"):
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            dir_name = qs.get("dir", [""])[0]
+            if not dir_name:
+                return self._text(400, "missing dir param")
+            p = safe_path(dir_name + "/__check__")
+            if not p:
+                return self._text(403, "forbidden")
+            p.parent.mkdir(parents=True, exist_ok=True)
             return self._text(200, "ok")
 
         self._text(404, "not found")
@@ -188,10 +217,10 @@ def watchdog():
             _shutdown()
 
 
-port = find_free_port(8080)
-url = f"http://localhost:{port}/index.html"
+import time as _t
+url = f"http://localhost:{PORT}/index.html?nocache={int(_t.time())}"
 
-server = http.server.ThreadingHTTPServer(("", port), Handler)
+server = http.server.ThreadingHTTPServer(("", PORT), Handler)
 print(f"  Mermaid Editor → {url}")
 print("  Close the browser tab (or press Ctrl+C) to stop.")
 

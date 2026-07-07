@@ -128,6 +128,7 @@ export function updatePropsPanel() {
   const nodeProps = document.getElementById('nodeProps');
   const edgeProps = document.getElementById('edgeProps');
   const groupProps = document.getElementById('groupProps');
+  if (!propPanel || !nodeProps || !edgeProps || !groupProps) return;
   if (!S.selected && S.multiSelect.size === 0) {
     propPanel.classList.remove('visible'); nodeProps.style.display = 'none'; edgeProps.style.display = 'none'; groupProps.style.display = 'none'; return;
   }
@@ -232,7 +233,7 @@ export function render() {
       ev.stopPropagation();
       const { activateInline, scheduleSnapshot } = window._editorInline || {};
       if (activateInline) activateInline(g.x*S.zoom+S.panX+g.w*S.zoom/2, g.y*S.zoom+S.panY+14*S.zoom, g.title, g.w*S.zoom, val => {
-        if (val.trim()) { const { pushUndo } = window._editorUtils||{}; if(pushUndo)pushUndo(); g.title=val.trim(); render(); if(scheduleSnapshot)scheduleSnapshot('Renamed group'); }
+        if (val.trim()) { const { pushUndo } = window._editorUtils||{}; if(pushUndo)pushUndo(); g.title=val.trim(); render(); const { countMutation } = window._editorHistory||{}; if(countMutation)countMutation(); }
       });
     });
     grp.appendChild(tb);
@@ -255,7 +256,11 @@ export function render() {
 
   // EDGES
   S.edges.forEach(e => {
-    const from = S.nodes.find(n => n.id === e.from), to = S.nodes.find(n => n.id === e.to);
+    let from = S.nodes.find(n => n.id === e.from);
+    let to   = S.nodes.find(n => n.id === e.to);
+    // Fall back to group box center when endpoint is a subgraph, not a leaf node
+    if (!from) { const g = S.groups.find(g => g.id === e.from); if (g) from = { x: g.x+g.w/2, y: g.y+g.h/2, label: g.title||'', shape: 'rect', _w: g.w, _h: g.h }; }
+    if (!to)   { const g = S.groups.find(g => g.id === e.to);   if (g) to   = { x: g.x+g.w/2, y: g.y+g.h/2, label: g.title||'', shape: 'rect', _w: g.w, _h: g.h }; }
     if (!from || !to) return;
     const style = edgeStyles[e.type] || edgeStyles['arrow'];
     const isSel = (S.selected && S.selected.type==='edge' && S.selected.id===e.id) || S.multiSelectEdges.has(e.id);
@@ -282,7 +287,7 @@ export function render() {
       const { activateInline, scheduleSnapshot } = window._editorInline || {};
       if (activateInline) activateInline(screenX, screenY, e.label, 140, val => {
         const { pushUndo } = window._editorUtils||{}; if(pushUndo)pushUndo();
-        e.label = val; render(); if(scheduleSnapshot)scheduleSnapshot('Edited edge label');
+        e.label = val; render(); const { countMutation: cm2 } = window._editorHistory||{}; if(cm2)cm2();
       });
     });
     edgesLayer.appendChild(hit);
@@ -347,7 +352,6 @@ export function render() {
           const { pushUndo } = window._editorUtils||{};
           if (pushUndo) pushUndo();
           if (addEdge) addEdge(S.connectFrom, n.id, '', document.getElementById('arrowSelect').value);
-          if (takeSnapshot) takeSnapshot('Connected nodes');
           // Remove ghost line
           if (S.connectGhost && S.connectGhost.parentNode) S.connectGhost.parentNode.removeChild(S.connectGhost);
           S.connectGhost = null;
@@ -377,7 +381,7 @@ export function render() {
       ev.stopPropagation();
       const { activateInline, scheduleSnapshot } = window._editorInline || {};
       if (activateInline) activateInline(n.x*S.zoom+S.panX, n.y*S.zoom+S.panY, n.label.replace(/\n/g,'\\n'), w*S.zoom+40, val => {
-        if (val.trim()) { const { pushUndo } = window._editorUtils||{}; if(pushUndo)pushUndo(); n.label=val.trim().replace(/\\n/g,'\n'); render(); if(scheduleSnapshot)scheduleSnapshot('Renamed node'); }
+        if (val.trim()) { const { pushUndo } = window._editorUtils||{}; if(pushUndo)pushUndo(); n.label=val.trim().replace(/\\n/g,'\n'); render(); const { countMutation: cm3 } = window._editorHistory||{}; if(cm3)cm3(); }
       });
     });
 

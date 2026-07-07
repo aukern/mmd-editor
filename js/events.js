@@ -1,7 +1,7 @@
 import { S } from './state.js';
 import { svgPoint, pushUndo, cloneState, restoreStateFrom, setZoom, fitAll, snapGrid, uid, nodeSize, makeSVG, applyTransform } from './utils.js';
 import { render, renderPorts, updateUndoRedo } from './render.js';
-import { scheduleSnapshot, takeSnapshot } from './history.js';
+import { scheduleSnapshot, takeSnapshot, countMutation } from './history.js';
 import { scheduleSave, doAutoSave } from './file.js';
 import { loadFromMermaidText } from './loader.js';
 import { autoArrange, fitGroupsToMembers } from './layout.js';
@@ -41,14 +41,13 @@ export function deleteSelected() {
     S.nodes = S.nodes.filter(n => !ids.has(n.id));
     S.edges = S.edges.filter(e => !ids.has(e.from) && !ids.has(e.to) && !S.multiSelectEdges.has(e.id));
     S.multiSelect.clear(); S.multiSelectEdges.clear(); S.selected = null;
-    render(); takeSnapshot('Deleted elements'); return;
+    render(); countMutation(); return;
   }
   if (!S.selected) return;
   pushUndo();
   if (S.selected.type === 'edge') { S.edges = S.edges.filter(e => e.id !== S.selected.id); }
   else if (S.selected.type === 'group') { S.nodes.forEach(n => { if(n.parent===S.selected.id)n.parent=null; }); S.groups=S.groups.filter(g=>g.id!==S.selected.id); }
-  const label = 'Deleted ' + (S.selected ? S.selected.type : 'element');
-  S.selected = null; render(); takeSnapshot(label);
+  S.selected = null; render(); countMutation();
 }
 
 export function copySelection() {
@@ -76,7 +75,7 @@ export function pasteClipboard() {
     if(nf&&nt) S.edges.push({id:uid('e',S.nextEdgeNum++),from:nf,to:nt,label:e.label,type:e.type});
   });
   S.multiSelect.clear(); idMap.forEach(id=>S.multiSelect.add(id)); S.selected=null;
-  render(); takeSnapshot('Pasted nodes');
+  render(); countMutation();
 }
 
 export function duplicateSelection() {
@@ -93,7 +92,7 @@ export function duplicateSelection() {
     if(nf&&nt)S.edges.push({id:uid('e',S.nextEdgeNum++),from:nf,to:nt,label:e.label,type:e.type});
   });
   S.multiSelect.clear(); idMap.forEach(id=>S.multiSelect.add(id)); S.selected=null;
-  render(); takeSnapshot('Duplicated nodes');
+  render(); countMutation();
 }
 
 function renameNodeId(oldId, newId) {
@@ -269,15 +268,14 @@ export function initCanvasEvents() {
       if (S.portDrag.targetNodeId) {
         pushUndo();
         addEdge(S.portDrag.fromNodeId, S.portDrag.targetNodeId, '', document.getElementById('arrowSelect').value);
-        takeSnapshot('Connected nodes');
-        scheduleSave();
+        scheduleSave(); countMutation();
       }
       S.portDrag=null; renderPorts(S.hoveredNodeId, { onPortMousedown: handlePortMousedown }); return;
     }
     if (S.drag) {
       const n = S.nodes.find(x=>x.id===S.drag.id);
       if (n) { const hit=S.groups.find(g=>n.x>=g.x&&n.x<=g.x+g.w&&n.y>=g.y&&n.y<=g.y+g.h); n.parent=hit?hit.id:null; }
-      if (S.drag.moved) scheduleSnapshot('Moved nodes');
+      if (S.drag.moved) { scheduleSave(); }
       S.drag=null; render(); return;
     }
     if (S.groupDrag) { S.groupDrag=null; render(); return; }
@@ -288,34 +286,30 @@ export function initCanvasEvents() {
 
 // ── Toolbar buttons ───────────────────────────────────────────────────────────
 export function initToolbar() {
-  document.getElementById('newBtn').addEventListener('click', () => {
-    if ((S.nodes.length||S.edges.length) && !confirm('Clear the current diagram?')) return;
-    S.nodes=[]; S.edges=[]; S.groups=[]; S.classDefs={}; S.selected=null; S.multiSelect.clear();
-    S.nextNodeNum=1; S.nextEdgeNum=1; S.nextGroupNum=1; S.snapshots=[];
-    S.undoStack=[]; S.redoStack=[]; updateUndoRedo();
-    S.zoom=1; S.panX=80; S.panY=80; render(); scheduleSave();
-  });
+  const previewGuard = () => { if (S.previewMode) { document.getElementById('statusText').textContent = 'Exit preview mode first (Accept or Cancel).'; return true; } return false; };
 
   document.getElementById('addNodeBtn').addEventListener('click', () => {
+    if (previewGuard()) return;
     pushUndo();
     const rect = document.getElementById('canvasWrap').getBoundingClientRect();
     const cx=(rect.width/2-S.panX)/S.zoom, cy=(rect.height/2-S.panY)/S.zoom;
     addNode(cx+Math.random()*40-20, cy+Math.random()*40-20, 'Node '+S.nextNodeNum, S.currentShapeValue);
-    takeSnapshot('Added node');
+    countMutation();
     document.getElementById('statusText').textContent='Node added. Drag from its edge to connect.';
   });
 
   document.getElementById('addGroupBtn').addEventListener('click', () => {
+    if (previewGuard()) return;
     pushUndo();
     const rect = document.getElementById('canvasWrap').getBoundingClientRect();
     const cx=(rect.width/2-S.panX)/S.zoom-130, cy=(rect.height/2-S.panY)/S.zoom-80;
-    addGroup(cx,cy); takeSnapshot('Added group');
+    addGroup(cx,cy); countMutation();
   });
 
   document.getElementById('connectBtn').addEventListener('click', ev => {
+    if (previewGuard()) return;
     S.connectMode = !S.connectMode;
     S.connectFrom = null;
-    // Remove ghost if toggling off
     if (!S.connectMode && S.connectGhost) {
       if (S.connectGhost.parentNode) S.connectGhost.parentNode.removeChild(S.connectGhost);
       S.connectGhost = null;
@@ -331,14 +325,16 @@ export function initToolbar() {
     ev.target.classList.toggle('active', S.snapAlways);
   });
 
-  document.getElementById('deleteBtn').addEventListener('click', () => deleteSelected());
-  document.getElementById('arrangeBtn').addEventListener('click', () => { autoArrange(); document.getElementById('statusText').textContent='Re-arranged.'; });
+  document.getElementById('deleteBtn').addEventListener('click', () => { if (!previewGuard()) deleteSelected(); });
+  document.getElementById('arrangeBtn').addEventListener('click', () => { if (previewGuard()) return; autoArrange(); document.getElementById('statusText').textContent='Re-arranged.'; });
 
   document.getElementById('undoBtn').addEventListener('click', () => {
-    if (S.undoStack.length) { S.redoStack.push(cloneState()); restoreStateFrom(S.undoStack.pop()); updateUndoRedo(); render(); }
+    if (previewGuard()) return;
+    if (S.undoStack.length) { S.redoStack.push(cloneState()); restoreStateFrom(S.undoStack.pop()); updateUndoRedo(); render(); S.mutationCount = Math.max(0, (S.mutationCount||0) - 1); }
   });
   document.getElementById('redoBtn').addEventListener('click', () => {
-    if (S.redoStack.length) { S.undoStack.push(cloneState()); restoreStateFrom(S.redoStack.pop()); updateUndoRedo(); render(); }
+    if (previewGuard()) return;
+    if (S.redoStack.length) { S.undoStack.push(cloneState()); restoreStateFrom(S.redoStack.pop()); updateUndoRedo(); render(); S.mutationCount = (S.mutationCount||0) + 1; }
   });
 
   document.getElementById('zoomInBtn').addEventListener('click', () => setZoom(S.zoom*1.2));
@@ -433,6 +429,32 @@ export function initKeyboard() {
   window.addEventListener('keydown', ev => {
     const tag = document.activeElement.tagName;
     if (tag==='INPUT'||tag==='TEXTAREA') return;
+    // In preview mode: only Escape (cancel preview) is allowed
+    if (S.previewMode) {
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        S.previewMode = false;
+        if (S.previewSaved) {
+          const saved = S.previewSaved;
+          S.nodes = saved.nodes; S.edges = saved.edges; S.groups = saved.groups;
+          S.classDefs = saved.classDefs; S.direction = saved.direction;
+          S.zoom = saved.zoom; S.panX = saved.panX; S.panY = saved.panY;
+          const dirSel = document.getElementById('directionSelect');
+          if (dirSel) dirSel.value = S.direction;
+          S.previewSaved = null;
+        }
+        S.selected = null; S.multiSelect.clear(); S.multiSelectEdges.clear();
+        document.getElementById('canvasWrap').classList.remove('preview-mode');
+        document.getElementById('previewBanner').style.display = 'none';
+        document.getElementById('historyPreview').classList.remove('visible');
+        document.getElementById('historyPanel').classList.remove('open');
+        render();
+        const { applyTransform } = window._editorUtils || {};
+        if (applyTransform) applyTransform();
+        document.getElementById('statusText').textContent = 'Preview cancelled.';
+      }
+      return;
+    }
     if (ev.key==='Delete'||ev.key==='Backspace') { ev.preventDefault(); deleteSelected(); }
     if (ev.key==='Escape') {
       cancelInline();
@@ -454,15 +476,23 @@ export function initKeyboard() {
     }
     if ((ev.ctrlKey||ev.metaKey) && ev.key==='z') {
       ev.preventDefault();
-      if(S.undoStack.length){S.redoStack.push(cloneState());restoreStateFrom(S.undoStack.pop());updateUndoRedo();render();}
+      if(S.undoStack.length){S.redoStack.push(cloneState());restoreStateFrom(S.undoStack.pop());updateUndoRedo();render();S.mutationCount=Math.max(0,(S.mutationCount||0)-1);}
     }
     if ((ev.ctrlKey||ev.metaKey) && (ev.key==='y'||(ev.shiftKey&&ev.key==='Z'))) {
       ev.preventDefault();
-      if(S.redoStack.length){S.undoStack.push(cloneState());restoreStateFrom(S.redoStack.pop());updateUndoRedo();render();}
+      if(S.redoStack.length){S.undoStack.push(cloneState());restoreStateFrom(S.redoStack.pop());updateUndoRedo();render();S.mutationCount=(S.mutationCount||0)+1;}
     }
-    if ((ev.ctrlKey||ev.metaKey) && ev.key==='c' && !ev.shiftKey) { ev.preventDefault(); copySelection(); }
-    if ((ev.ctrlKey||ev.metaKey) && ev.key==='x') { ev.preventDefault(); copySelection(); deleteSelected(); }
-    if ((ev.ctrlKey||ev.metaKey) && ev.key==='v') { ev.preventDefault(); pasteClipboard(); }
+    if ((ev.ctrlKey||ev.metaKey) && ev.key==='c' && !ev.shiftKey) {
+      // Only intercept if there's a canvas selection; otherwise let browser copy selected text
+      if (S.selected || S.multiSelect.size > 0) { ev.preventDefault(); copySelection(); }
+    }
+    if ((ev.ctrlKey||ev.metaKey) && ev.key==='x') {
+      if (S.selected || S.multiSelect.size > 0) { ev.preventDefault(); copySelection(); deleteSelected(); }
+    }
+    if ((ev.ctrlKey||ev.metaKey) && ev.key==='v') {
+      // Only intercept paste if we have something in the canvas clipboard
+      if (S.clipboard) { ev.preventDefault(); pasteClipboard(); }
+    }
     if ((ev.ctrlKey||ev.metaKey) && ev.key==='d') { ev.preventDefault(); duplicateSelection(); }
     if ((ev.ctrlKey||ev.metaKey) && ev.key==='a') {
       ev.preventDefault();

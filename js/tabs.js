@@ -63,6 +63,8 @@ export function restoreTabState(tab) {
     if (stopFileWatcher) stopFileWatcher();
   }
   syncModal();
+  const { applyTransform } = window._editorUtils || {};
+  if (applyTransform) applyTransform();
 }
 
 export function renderTabBar() {
@@ -73,7 +75,8 @@ export function renderTabBar() {
     el.className = 'tab' + (idx === S.activeTabIdx ? ' active' : '');
     const label = document.createElement('span');
     label.className = 'tab-label';
-    label.textContent = tab.filename || 'Untitled';
+    const basename = tab.filename ? tab.filename.split('/').pop() : 'Untitled';
+    label.textContent = basename;
     label.title = tab.filename || 'Untitled';
     const close = document.createElement('span');
     close.className = 'tab-close';
@@ -143,10 +146,15 @@ export function openInNewTab(filename, mmdText) {
   S.tabs[S.activeTabIdx].snapshots = S.snapshots;
   const { takeSnapshot } = window._editorHistory || {};
   if (takeSnapshot) takeSnapshot('Opened file');
+  // Opening a file must NOT trigger autosave — the regenerated mermaid text may differ
+  // from the original (parser lossy round-trip), which would silently corrupt the file.
+  // Only user mutations should save.
+  clearTimeout(S.saveTimer); S.saveTimer = null;
   if (filename) {
-    const { serverMtime, startFileWatcher } = window._editorFile || {};
+    const { serverMtime, startFileWatcher, updateSaveStatus } = window._editorFile || {};
     if (serverMtime) serverMtime(filename).then(m => { if (m !== null) S.lastKnownMtime = m; });
     if (startFileWatcher) startFileWatcher(filename);
+    if (updateSaveStatus) updateSaveStatus('saved');
   }
   const { render } = window._editorRender || {};
   if (render) render();
@@ -197,11 +205,14 @@ export function loadIntoCurrentTab(filename, mmdText) {
 
   const { takeSnapshot } = window._editorHistory || {};
   if (takeSnapshot) takeSnapshot('Opened file');
+  // Opening a file must NOT trigger autosave — cancel any save the snapshot scheduled.
+  clearTimeout(S.saveTimer); S.saveTimer = null;
 
   if (filename) {
-    const { serverMtime, startFileWatcher } = window._editorFile || {};
+    const { serverMtime, startFileWatcher, updateSaveStatus } = window._editorFile || {};
     if (serverMtime) serverMtime(filename).then(m => { if (m !== null) S.lastKnownMtime = m; });
     if (startFileWatcher) startFileWatcher(filename);
+    if (updateSaveStatus) updateSaveStatus('saved');
   }
 
   const { render } = window._editorRender || {};

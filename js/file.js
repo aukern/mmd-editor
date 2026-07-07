@@ -75,44 +75,28 @@ export function startFileWatcher(filename) {
       if (S.lastKnownMtime === null) { S.lastKnownMtime = mtime; return; }
       if (mtime > S.lastKnownMtime) {
         S.lastKnownMtime = mtime;
-        showReloadToast(filename);
+        autoReloadFromDisk(filename);
       }
     } catch(e) { /* ignore */ }
   }, 3000);
 }
 
-let reloadDismissTimer = null;
-function showReloadToast(filename) {
-  const toast = document.getElementById('reloadToast');
-  document.getElementById('reloadToastMsg').textContent = 'File changed externally';
-  toast.classList.add('visible');
-  if (reloadDismissTimer) clearTimeout(reloadDismissTimer);
-  reloadDismissTimer = setTimeout(dismissReloadToast, 15000);
-
-  document.getElementById('reloadToastReload').onclick = async () => {
-    dismissReloadToast();
-    try {
-      const text = await serverRead(filename);
-      const { loadFromMermaidText } = window._editorLoad || {};
-      if (loadFromMermaidText) {
-        S.snapshots = [];
-        const snaps = extractSnapshotsFromText(text);
-        if (snaps.length) S.snapshots = snaps;
-        loadFromMermaidText(text, true);
-      }
-      const mtime = await serverMtime(filename);
-      if (mtime !== null) S.lastKnownMtime = mtime;
-      document.getElementById('statusText').textContent = 'Reloaded from disk.';
-    } catch(e) {
-      document.getElementById('statusText').textContent = 'Reload failed: ' + e.message;
+async function autoReloadFromDisk(filename) {
+  try {
+    const text = await serverRead(filename);
+    const { loadFromMermaidText } = window._editorLoad || {};
+    if (loadFromMermaidText) {
+      S.snapshots = [];
+      const snaps = extractSnapshotsFromText(text);
+      if (snaps.length) S.snapshots = snaps;
+      loadFromMermaidText(text, true);
     }
-  };
-  document.getElementById('reloadToastDismiss').onclick = dismissReloadToast;
-}
-
-function dismissReloadToast() {
-  document.getElementById('reloadToast').classList.remove('visible');
-  if (reloadDismissTimer) { clearTimeout(reloadDismissTimer); reloadDismissTimer = null; }
+    const mtime = await serverMtime(filename);
+    if (mtime !== null) S.lastKnownMtime = mtime;
+    document.getElementById('statusText').textContent = 'Synced from disk.';
+  } catch(e) {
+    document.getElementById('statusText').textContent = 'Sync failed: ' + e.message;
+  }
 }
 
 export function setFilename(name) {
