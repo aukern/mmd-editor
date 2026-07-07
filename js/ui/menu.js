@@ -83,6 +83,7 @@ export function buildMenuBar() {
         { label: 'Zoom Out', shortcut: '-', action: () => { const { setZoom } = window._editorUtils||{}; if(setZoom)setZoom(S.zoom/1.2); }},
         { label: 'Fit', shortcut: 'F', action: () => { const { fitAll } = window._editorUtils||{}; if(fitAll)fitAll(); }},
         { label: '-' },
+        { label: 'Toggle Pan / Select Mode', action: () => { document.getElementById('panModeBtn').click(); }},
         { label: 'Toggle Grid Snap', action: () => {
           S.snapAlways = !S.snapAlways;
           document.getElementById('snapGridBtn').classList.toggle('active', S.snapAlways);

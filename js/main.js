@@ -10,6 +10,7 @@ import { initInline, activateInline, cancelInline } from './ui/inline.js';
 import { buildShapeDropdown, setCurrentShape } from './ui/shapeDropdown.js';
 import { initModal } from './ui/modal.js';
 import { buildMenuBar, buildExportDropdown } from './ui/menu.js';
+import { initSourceEditor } from './ui/source.js';
 import { autoArrange } from './layout.js';
 
 // ── Expose globals so cross-module callbacks work without circular imports ─────
@@ -37,6 +38,7 @@ function init() {
   initCanvasEvents();
   initToolbar();
   initKeyboard();
+  initSourceEditor();
 
   // Close shape/export dropdowns on outside click
   document.addEventListener('click', () => {

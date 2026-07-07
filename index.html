@@ -10,7 +10,7 @@
 <body>
 
 <!-- Inline editor input (positioned absolutely over canvas) -->
-<input id="inlineInput" type="text">
+<textarea id="inlineInput" rows="1" spellcheck="false"></textarea>
 
 <!-- Menu bar -->
 <div id="menuBar"></div>
@@ -68,6 +68,7 @@
   <button id="zoomInBtn" title="Zoom in">+</button>
   <button id="fitBtn" title="Fit">Fit</button>
   <div class="sep"></div>
+  <button id="panModeBtn" title="Toggle pan mode — drag empty canvas to pan instead of select (Ctrl inverts)">🖐 Pan</button>
   <button id="snapGridBtn" title="Toggle grid snap (Alt+drag also snaps)">⊞ Grid</button>
   <button id="snapshotBtn" title="Save snapshot (Ctrl+S)">📷</button>
   <div class="sep"></div>
@@ -211,13 +212,15 @@
     </div>
 
     <div class="sb-section" style="flex:1;display:flex;flex-direction:column;gap:6px">
-      <h2>Mermaid source (.mmd)</h2>
-      <textarea id="mmdOut" readonly></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+        <h2 style="margin:0">Mermaid source (.mmd)</h2>
+        <button id="expandSourceBtn" title="Expand editor" style="font-size:11px;padding:2px 7px">⤢ Expand</button>
+      </div>
+      <div id="mmdOutWrap"><div id="mmdOutHiBar"></div><textarea id="mmdOut" spellcheck="false" placeholder="flowchart TD&#10;    A[Start] --> B{Decision}"></textarea></div>
       <div class="btn-row">
         <button id="copyBtn">Copy</button>
-        <button id="saveAsBtn">Save As…</button>
-        <button id="downloadBtn">Download</button>
       </div>
+      <p class="hint" style="margin-top:2px">Editable — changes apply live and are undoable.</p>
       <h2 style="margin-top:6px">Load / paste Mermaid</h2>
       <textarea id="mmdIn" placeholder="flowchart LR&#10;    A[Start] --> B{Decision}"></textarea>
       <div class="btn-row">
@@ -232,6 +235,20 @@
         <b>Del</b>=delete · <b>C</b>=connect mode · <b>Ctrl+Z/Y</b>=undo/redo · <b>Alt+drag</b>=snap
       </p>
     </div>
+  </div>
+</div>
+
+<!-- Expanded Mermaid source editor -->
+<div id="sourceModal">
+  <div class="source-modal-card">
+    <div class="source-modal-header">
+      <span>Mermaid source (.mmd)</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="sourceModalCopy">Copy</button>
+        <button id="sourceModalClose">✕ Close</button>
+      </div>
+    </div>
+    <textarea id="mmdOutBig" spellcheck="false"></textarea>
   </div>
 </div>
 

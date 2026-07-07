@@ -10,6 +10,7 @@ export const S = {
   isPanning: false, panStartX: 0, panStartY: 0, panOriginX: 0, panOriginY: 0,
   nextNodeNum: 1, nextEdgeNum: 1, nextGroupNum: 1,
   hoveredNodeId: null,
+  hoveredGroupId: null,
   portDrag: null,
   rubberBandStart: null, rubberBandEl: null,
   clipboard: null, pasteCount: 0,
@@ -21,11 +22,13 @@ export const S = {
   lastKnownMtime: null,
   fileWatchTimer: null,
   snapAlways: false,
+  panMode: false,
   tabs: [],
   activeTabIdx: -1,
   previewMode: false,
   previewSaved: null,
   mutationCount: 0,
+  sourceLineMap: null,
 };
 
 export function resetS() {

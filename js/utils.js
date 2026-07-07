@@ -41,6 +41,12 @@ export function fitAll() {
 
 export function snapGrid(v) { return Math.round(v / 24) * 24; }
 
+// Height of a group's title bar — grows to fit a multi-line title.
+export function groupTitleHeight(title) {
+  const lines = Math.max(1, (title || '').split('\n').length);
+  return 26 + (lines - 1) * 16;
+}
+
 export function nodeSize(n) {
   if (n._w !== undefined) return { w: n._w, h: n._h };
   const lines = (n.label || '').split('\n');
@@ -71,6 +77,19 @@ export function getPortPositions(n) {
     {x: n.x,       y: n.y+h/2+off, dir:'S'},
     {x: n.x+w/2+off, y: n.y,       dir:'E'},
     {x: n.x-w/2-off, y: n.y,       dir:'W'},
+  ];
+}
+
+// Groups use a top-left box model (x,y,w,h) rather than a centre — ports sit on
+// the midpoints of the four box edges, offset outward like node ports.
+export function getGroupPortPositions(g) {
+  const off = 14;
+  const cx = g.x + g.w/2, cy = g.y + g.h/2;
+  return [
+    {x: cx,           y: g.y - off,        dir:'N'},
+    {x: cx,           y: g.y + g.h + off,  dir:'S'},
+    {x: g.x + g.w + off, y: cy,            dir:'E'},
+    {x: g.x - off,    y: cy,               dir:'W'},
   ];
 }
 

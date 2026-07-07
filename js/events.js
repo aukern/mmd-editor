@@ -1,6 +1,6 @@
 import { S } from './state.js';
 import { svgPoint, pushUndo, cloneState, restoreStateFrom, setZoom, fitAll, snapGrid, uid, nodeSize, makeSVG, applyTransform } from './utils.js';
-import { render, renderPorts, updateUndoRedo } from './render.js';
+import { render, renderPorts, renderGroupPorts, updateUndoRedo } from './render.js';
 import { scheduleSnapshot, takeSnapshot, countMutation } from './history.js';
 import { scheduleSave, doAutoSave } from './file.js';
 import { loadFromMermaidText } from './loader.js';
@@ -154,7 +154,9 @@ function endRubberBand(pt) {
 }
 
 // ── Port drag handler (called from render.js via window._editorPortHandlers) ──
-function handlePortMousedown(ev, nodeId, pos) {
+// `fromId` may be a node id or a group id — the edge model stores plain ids and
+// render.js resolves group endpoints to their box centre, so both just work.
+function handlePortMousedown(ev, fromId, pos) {
   ev.stopPropagation(); ev.preventDefault();
   const ghost = makeSVG('line');
   ghost.setAttribute('x1',pos.x); ghost.setAttribute('y1',pos.y);
@@ -162,7 +164,13 @@ function handlePortMousedown(ev, nodeId, pos) {
   ghost.setAttribute('stroke','#6c8cff'); ghost.setAttribute('stroke-width','1.5');
   ghost.setAttribute('stroke-dasharray','6,3'); ghost.style.pointerEvents='none';
   document.getElementById('overlayLayer').appendChild(ghost);
-  S.portDrag = {fromNodeId:nodeId, startPos:{x:pos.x,y:pos.y}, ghostLine:ghost, targetNodeId:null};
+  S.portDrag = {fromId, startPos:{x:pos.x,y:pos.y}, ghostLine:ghost, targetId:null};
+}
+
+// Restore whichever port set is currently hovered after a drag ends.
+function refreshHoverPorts() {
+  if (S.hoveredGroupId) renderGroupPorts(S.hoveredGroupId, { onPortMousedown: handlePortMousedown });
+  else renderPorts(S.hoveredNodeId, { onPortMousedown: handlePortMousedown });
 }
 
 // ── Canvas mouse events ───────────────────────────────────────────────────────
@@ -173,7 +181,10 @@ export function initCanvasEvents() {
   window.addEventListener('keyup', ev => { if(ev.key==='Control')canvasWrap.classList.remove('ctrl-hover'); });
 
   canvasWrap.addEventListener('wheel', ev => {
-    if (ev.ctrlKey) {
+    // Scroll-to-zoom follows the same mode/Ctrl rule as drag-to-pan, so Pan mode
+    // gives you zoom without holding Ctrl (and Ctrl inverts it).
+    const zoomActive = ev.ctrlKey !== S.panMode;
+    if (zoomActive) {
       ev.preventDefault();
       const delta = ev.deltaY>0 ? 0.9 : 1/0.9;
       setZoom(S.zoom*delta, ev.clientX, ev.clientY);
@@ -184,12 +195,10 @@ export function initCanvasEvents() {
   let isRubberBanding = false;
 
   canvasWrap.addEventListener('mousedown', ev => {
-    if (ev.button===0 && ev.ctrlKey) {
-      ev.preventDefault();
-      S.isPanning=true; S.panStartX=ev.clientX; S.panStartY=ev.clientY; S.panOriginX=S.panX; S.panOriginY=S.panY;
-      canvasWrap.classList.add('pan-cursor'); return;
-    }
-    if (ev.button===1) {
+    // Middle button always pans. Left button pans when Pan mode is on; Ctrl
+    // inverts the current mode (so you can always get the other action too).
+    const wantPan = ev.button===1 || (ev.button===0 && (ev.ctrlKey !== S.panMode));
+    if (wantPan) {
       ev.preventDefault();
       S.isPanning=true; S.panStartX=ev.clientX; S.panStartY=ev.clientY; S.panOriginX=S.panX; S.panOriginY=S.panY;
       canvasWrap.classList.add('pan-cursor'); return;
@@ -217,9 +226,14 @@ export function initCanvasEvents() {
     if (S.portDrag) {
       const pt = svgPoint(ev);
       S.portDrag.ghostLine.setAttribute('x2',pt.x); S.portDrag.ghostLine.setAttribute('y2',pt.y);
-      S.portDrag.targetNodeId = null;
-      const target = S.nodes.find(n=>{ const{w,h}=nodeSize(n); return Math.abs(pt.x-n.x)<w/2+10&&Math.abs(pt.y-n.y)<h/2+10&&n.id!==S.portDrag.fromNodeId; });
-      S.portDrag.targetNodeId = target ? target.id : null;
+      // Prefer a node under the cursor (more specific); fall back to a group box.
+      const node = S.nodes.find(n=>{ const{w,h}=nodeSize(n); return Math.abs(pt.x-n.x)<w/2+10&&Math.abs(pt.y-n.y)<h/2+10&&n.id!==S.portDrag.fromId; });
+      let tid = node ? node.id : null;
+      if (!tid) {
+        const grp = S.groups.find(g=> pt.x>=g.x && pt.x<=g.x+g.w && pt.y>=g.y && pt.y<=g.y+g.h && g.id!==S.portDrag.fromId);
+        if (grp) tid = grp.id;
+      }
+      S.portDrag.targetId = tid;
       return;
     }
     if (S.drag) {
@@ -241,6 +255,7 @@ export function initCanvasEvents() {
       if (S.groupDrag.mode==='move') {
         g.x=S.groupDrag.orig.x+dx; g.y=S.groupDrag.orig.y+dy;
         S.groupDrag.memberOrig.forEach(m=>{ const n=S.nodes.find(x=>x.id===m.id); if(n){n.x=m.x+dx;n.y=m.y+dy;} });
+        (S.groupDrag.groupOrig||[]).forEach(m=>{ const cg=S.groups.find(x=>x.id===m.id); if(cg){cg.x=m.x+dx;cg.y=m.y+dy;} });
       } else { g.w=Math.max(120,S.groupDrag.orig.w+dx); g.h=Math.max(80,S.groupDrag.orig.h+dy); }
       render(); return;
     }
@@ -261,20 +276,33 @@ export function initCanvasEvents() {
   });
 
   window.addEventListener('mouseup', ev => {
-    if (S.isPanning) { S.isPanning=false; document.getElementById('canvasWrap').classList.remove('pan-cursor'); return; }
+    if (S.isPanning) {
+      S.isPanning=false; document.getElementById('canvasWrap').classList.remove('pan-cursor');
+      // A pan that didn't move is really a click on empty canvas — clear selection.
+      const moved = Math.hypot(ev.clientX - S.panStartX, ev.clientY - S.panStartY) > 4;
+      if (!moved && (S.selected || S.multiSelect.size || S.multiSelectEdges.size)) {
+        S.selected=null; S.multiSelect.clear(); S.multiSelectEdges.clear(); render();
+      }
+      return;
+    }
     if (S.portDrag) {
       const ghost = S.portDrag.ghostLine;
       if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
-      if (S.portDrag.targetNodeId) {
+      if (S.portDrag.targetId) {
         pushUndo();
-        addEdge(S.portDrag.fromNodeId, S.portDrag.targetNodeId, '', document.getElementById('arrowSelect').value);
+        addEdge(S.portDrag.fromId, S.portDrag.targetId, '', document.getElementById('arrowSelect').value);
         scheduleSave(); countMutation();
       }
-      S.portDrag=null; renderPorts(S.hoveredNodeId, { onPortMousedown: handlePortMousedown }); return;
+      S.portDrag=null; refreshHoverPorts(); return;
     }
     if (S.drag) {
       const n = S.nodes.find(x=>x.id===S.drag.id);
-      if (n) { const hit=S.groups.find(g=>n.x>=g.x&&n.x<=g.x+g.w&&n.y>=g.y&&n.y<=g.y+g.h); n.parent=hit?hit.id:null; }
+      if (n) {
+        // Reparent to the innermost (smallest) group under the drop point.
+        const hits = S.groups.filter(g=>n.x>=g.x&&n.x<=g.x+g.w&&n.y>=g.y&&n.y<=g.y+g.h);
+        const hit = hits.length ? hits.reduce((a,b)=> (a.w*a.h<=b.w*b.h ? a : b)) : null;
+        n.parent = hit ? hit.id : null;
+      }
       if (S.drag.moved) { scheduleSave(); }
       S.drag=null; render(); return;
     }
@@ -323,6 +351,15 @@ export function initToolbar() {
   document.getElementById('snapGridBtn').addEventListener('click', ev => {
     S.snapAlways = !S.snapAlways;
     ev.target.classList.toggle('active', S.snapAlways);
+  });
+
+  document.getElementById('panModeBtn').addEventListener('click', ev => {
+    S.panMode = !S.panMode;
+    ev.currentTarget.classList.toggle('active', S.panMode);
+    document.getElementById('canvasWrap').classList.toggle('pan-mode', S.panMode);
+    document.getElementById('statusText').textContent = S.panMode
+      ? 'Pan mode: drag empty canvas to pan (Ctrl+drag to select).'
+      : 'Select mode: drag empty canvas to select (Ctrl+drag to pan).';
   });
 
   document.getElementById('deleteBtn').addEventListener('click', () => { if (!previewGuard()) deleteSelected(); });
@@ -400,17 +437,6 @@ export function initToolbar() {
   document.getElementById('copyBtn').addEventListener('click', () => {
     const ta = document.getElementById('mmdOut');
     navigator.clipboard.writeText(ta.value).then(()=>document.getElementById('statusText').textContent='Copied!').catch(()=>{ta.select();document.execCommand('copy');document.getElementById('statusText').textContent='Copied!';});
-  });
-  document.getElementById('saveAsBtn').addEventListener('click', () => {
-    const { buildFileContent } = window._editorHistory||{};
-    const content = buildFileContent ? buildFileContent() : document.getElementById('mmdOut').value;
-    const blob = new Blob([content],{type:'text/plain'});
-    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='diagram.mmd'; a.click(); URL.revokeObjectURL(url);
-    document.getElementById('statusText').textContent='Downloaded.';
-  });
-  document.getElementById('downloadBtn').addEventListener('click', () => {
-    const blob=new Blob([document.getElementById('mmdOut').value],{type:'text/plain'});
-    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='diagram.mmd'; a.click(); URL.revokeObjectURL(url);
   });
   document.getElementById('loadBtn').addEventListener('click', () => {
     const t=document.getElementById('mmdIn').value; if(t.trim())loadFromMermaidText(t);

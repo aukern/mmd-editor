@@ -1,5 +1,5 @@
 import { S } from './state.js';
-import { uid, fitAll } from './utils.js';
+import { uid, fitAll, nodeSize } from './utils.js';
 import { parseMermaid } from './parser.js';
 import { layoutFromGraph, fitGroupsToMembers } from './layout.js';
 import { extractSnapshotsFromText, stripSnapLines } from './history.js';
@@ -112,10 +112,71 @@ export function loadFromMermaidText(text, preserveSnapshots) {
     fitAll();
     document.getElementById('statusText').textContent = `Loaded ${S.nodes.length} node(s), ${S.edges.length} edge(s), ${S.groups.length} group(s).`;
 
-    // Async: refine layout using mermaid's own renderer (overrides dagre positions)
-    refineMermaidLayout(text).catch(e => console.warn('[MMD LAYOUT]', e));
+    // Async Mermaid refinement can fight the editor's grouped two-pass layout.
+    // Keep it for simple flat diagrams, but leave grouped diagrams stable.
+    if (!newGroups.length) {
+      refineMermaidLayout(text).catch(e => console.warn('[MMD LAYOUT]', e));
+    }
   } catch(err) {
     document.getElementById('statusText').textContent = 'Could not parse. Canvas unchanged.';
     console.error(err);
   }
+}
+
+// Apply edited Mermaid source onto the current diagram, preserving the position
+// of every node/group that still exists. Only brand-new nodes get auto-layout,
+// so editing labels/edges/styles never reshuffles the canvas. Returns true on
+// success. Callers own undo/snapshot/save (see ui/source.js).
+export function applyMermaidText(text) {
+  let parsed;
+  try { parsed = parseMermaid(text); }
+  catch(err) { document.getElementById('statusText').textContent = 'Parse error — diagram unchanged.'; return false; }
+  const { newNodes, newEdges, newGroups, newClassDefs, dir } = parsed;
+  const ids = [...newNodes.keys()];
+  if (!ids.length) { document.getElementById('statusText').textContent = 'No recognizable content — diagram unchanged.'; return false; }
+
+  const oldPos = new Map(S.nodes.map(n => [n.id, {x:n.x, y:n.y}]));
+  const oldGroup = new Map(S.groups.map(g => [g.id, {x:g.x, y:g.y, w:g.w, h:g.h}]));
+
+  // Layout is only needed when genuinely new nodes appear.
+  const hasNewNodes = ids.some(id => !oldPos.has(id));
+  const pos = hasNewNodes ? layoutFromGraph(ids, newEdges, dir, newNodes, newGroups) : {};
+
+  S.direction = dir;
+  const dirSel = document.getElementById('directionSelect');
+  if (dirSel) dirSel.value = dir;
+
+  S.nodes = ids.map(id => {
+    const meta = newNodes.get(id), keep = oldPos.get(id);
+    return {
+      id,
+      label: meta.label || id,
+      shape: meta.shape || 'rect',
+      x: keep ? keep.x : (pos[id]?.x ?? 160),
+      y: keep ? keep.y : (pos[id]?.y ?? 120),
+      parent: meta.parent || null,
+      style: meta.style || null,
+      classes: meta.classes || [],
+    };
+  });
+  S.edges = newEdges.map(e => ({ id: uid('e', S.nextEdgeNum++), from:e.from, to:e.to, label:e.label, type:e.type }));
+  // Keep the existing box for surviving groups; fit only brand-new ones.
+  S.groups = newGroups.map(g => oldGroup.has(g.id) ? {...g, ...oldGroup.get(g.id)} : {...g});
+  newGroups.forEach(g => {
+    if (oldGroup.has(g.id)) return;
+    const sg = S.groups.find(x => x.id === g.id);
+    const members = S.nodes.filter(n => n.parent === g.id);
+    if (!members.length) return;
+    let mnX=Infinity, mnY=Infinity, mxX=-Infinity, mxY=-Infinity;
+    members.forEach(n => { const {w,h}=nodeSize(n); mnX=Math.min(mnX,n.x-w/2); mxX=Math.max(mxX,n.x+w/2); mnY=Math.min(mnY,n.y-h/2); mxY=Math.max(mxY,n.y+h/2); });
+    const pad=30; sg.x=mnX-pad; sg.y=mnY-pad-26; sg.w=(mxX-mnX)+pad*2; sg.h=(mxY-mnY)+pad*2+26;
+  });
+  S.classDefs = {...newClassDefs};
+
+  S.nextNodeNum = Math.max(S.nextNodeNum, 1 + S.nodes.reduce((m,n) => { const mm=n.id.match(/^n(\d+)$/); return mm?Math.max(m,parseInt(mm[1])):m; }, 0));
+  S.nextGroupNum = Math.max(S.nextGroupNum, 1 + S.groups.reduce((m,g) => { const mm=g.id.match(/^g(\d+)$/); return mm?Math.max(m,parseInt(mm[1])):m; }, 0));
+  S.selected = null; S.multiSelect.clear(); S.multiSelectEdges.clear();
+  render();
+  document.getElementById('statusText').textContent = `Applied source — ${S.nodes.length} node(s), ${S.edges.length} edge(s).`;
+  return true;
 }

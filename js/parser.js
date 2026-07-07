@@ -24,7 +24,43 @@ const shapeDelims = [
   {open:'[', close:']', shape:'rect'},{open:'(', close:')', shape:'rounded'}
 ];
 
-function mmdLabelToInternal(s) { return (s||'').replace(/<br\/>/gi,'\n').replace(/<br>/gi,'\n').replace(/&#10;/g,'\n'); }
+function mmdLabelToInternal(s) { return (s||'').replace(/<br\/>/gi,'\n').replace(/<br>/gi,'\n').replace(/&#10;/g,'\n').replace(/\\n/g,'\n'); }
+function edgeLabelToInternal(s) {
+  s = (s || '').trim();
+  if (s.length >= 2 && s[0] === '"' && s[s.length - 1] === '"') s = s.slice(1, -1);
+  return mmdLabelToInternal(s);
+}
+
+function countUnescapedQuotes(s) {
+  let count = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '"' && s[i - 1] !== '\\') count++;
+  }
+  return count;
+}
+
+function logicalLines(text) {
+  const lines = [];
+  let buf = '';
+  let inQuotedStatement = false;
+  text.split('\n').forEach(raw => {
+    const trimmed = raw.trim();
+    if (!buf && (!trimmed || /^%%/.test(trimmed))) return;
+    if (!buf) {
+      buf = trimmed;
+      inQuotedStatement = countUnescapedQuotes(trimmed) % 2 === 1;
+    } else {
+      buf += '\n' + trimmed;
+      if (countUnescapedQuotes(trimmed) % 2 === 1) inQuotedStatement = !inQuotedStatement;
+    }
+    if (!inQuotedStatement) {
+      lines.push(buf);
+      buf = '';
+    }
+  });
+  if (buf) lines.push(buf);
+  return lines;
+}
 
 function parseStyleProps(str) {
   const out = {};
@@ -75,9 +111,9 @@ export function extractNodeToken(token) {
   if (!rest) return {id, label:null, shape:null, cssClass};
   for (const sd of shapeDelims) {
     const openRe = escapeRe(sd.open), closeRe = escapeRe(sd.close);
-    const quoted = rest.match(new RegExp('^'+openRe+'\\s*"(.*)"\\s*'+closeRe+'$'));
+    const quoted = rest.match(new RegExp('^'+openRe+'\\s*"([\\s\\S]*)"\\s*'+closeRe+'$'));
     if (quoted) return {id, label:mmdLabelToInternal(quoted[1]), shape:sd.shape, cssClass};
-    const plain = rest.match(new RegExp('^'+openRe+'(.*)'+closeRe+'$'));
+    const plain = rest.match(new RegExp('^'+openRe+'([\\s\\S]*)'+closeRe+'$'));
     if (plain) return {id, label:mmdLabelToInternal(plain[1]), shape:sd.shape, cssClass};
   }
   return {id, label:null, shape:null, cssClass};
@@ -87,7 +123,7 @@ export function parseMermaid(text) {
   const newNodes = new Map(), newEdges = [], newGroups = [], newClassDefs = {}, classAssignments = [], directStyles = [];
   const groupIdSet = new Set(); // track subgraph IDs so proxy re-declarations are skipped
   let dir = 'TD';
-  const rawLines = text.split('\n').map(l=>l.trim()).filter(l=>l&&!/^%%/.test(l));
+  const rawLines = logicalLines(text);
   const firstLine = rawLines[0];
   if (firstLine && /^(flowchart|graph)\s+/i.test(firstLine)) {
     const m = firstLine.match(/^(?:flowchart|graph)\s+(TD|TB|BT|LR|RL)/i);
@@ -107,7 +143,7 @@ export function parseMermaid(text) {
   const groupStack = [];
   rawLines.forEach(line => {
     const sgMatch = line.match(/^subgraph\s+(.+)$/i);
-    if (sgMatch) { let rest=sgMatch[1].trim(); let gid,title; const m=rest.match(/^([A-Za-z0-9_]+)\s*\[\s*"?(.*?)"?\s*\]$/); if(m){gid=m[1];title=m[2];}else{gid=rest.replace(/\s+/g,'_');title=rest;} newGroups.push({id:gid,title,x:0,y:0,w:260,h:160,direction:''}); groupIdSet.add(gid); groupStack.push(gid); return; }
+    if (sgMatch) { let rest=sgMatch[1].trim(); let gid,title; const m=rest.match(/^([A-Za-z0-9_]+)\s*\[\s*"?(.*?)"?\s*\]$/); if(m){gid=m[1];title=m[2];}else{gid=rest.replace(/\s+/g,'_');title=rest;} const parentGroup=groupStack[groupStack.length-1]||null; newGroups.push({id:gid,title:mmdLabelToInternal(title),x:0,y:0,w:260,h:160,direction:'',parent:parentGroup}); groupIdSet.add(gid); groupStack.push(gid); return; }
     if (/^end$/i.test(line)) { groupStack.pop(); return; }
     if (/^direction\s+(TD|TB|LR|BT|RL)$/i.test(line)) { const dm=line.match(/^direction\s+(TD|TB|LR|BT|RL)$/i); const cg=groupStack[groupStack.length-1]; if(dm&&cg){const grp=newGroups.find(g=>g.id===cg);if(grp)grp.direction=dm[1].toUpperCase();} return; }
     const cdm = line.match(/^classDef\s+(\S+)\s+(.+)$/i); if(cdm){newClassDefs[cdm[1]]=parseStyleProps(cdm[2]);return;}
@@ -120,7 +156,7 @@ export function parseMermaid(text) {
       const cg = groupStack[groupStack.length-1]||null;
       for (let i=0;i<split.arrows.length;i++) {
         let rightRaw = split.segments[i+1]; let label='';
-        const lm = rightRaw.match(/^\s*\|(.*?)\|/); if(lm){label=lm[1];rightRaw=rightRaw.slice(lm[0].length);}
+        const lm = rightRaw.match(/^\s*\|(.*?)\|/); if(lm){label=edgeLabelToInternal(lm[1]);rightRaw=rightRaw.slice(lm[0].length);}
         split.segments[i+1] = rightRaw;
         const leftToks = split.segments[i].split('&').map(s=>s.trim()).filter(Boolean);
         const rightToks = rightRaw.split('&').map(s=>s.trim()).filter(Boolean);
@@ -135,5 +171,19 @@ export function parseMermaid(text) {
   });
   classAssignments.forEach(ca => { ca.ids.forEach(id => { ensureNode(id); const nd=newNodes.get(id); if(!nd.classes.includes(ca.name))nd.classes.push(ca.name); }); });
   directStyles.forEach(ds => { ensureNode(ds.id); const ex=newNodes.get(ds.id); ex.style={...(ex.style||{}),...ds.props}; });
+  // Mermaid renders a truly empty subgraph as a plain labelled box —
+  // indistinguishable from a node. Match that: convert any group with no member
+  // nodes AND no child subgraphs into a node whose label is the group title.
+  // A container that only holds child subgraphs stays a group. Process last-
+  // declared (deepest) first so a parent sees whether its children survived.
+  for (let i = newGroups.length - 1; i >= 0; i--) {
+    const g = newGroups[i];
+    const hasNodeMembers = [...newNodes.values()].some(n => n.parent === g.id);
+    const hasChildGroups = newGroups.some(cg => cg.parent === g.id);
+    if (hasNodeMembers || hasChildGroups) continue;
+    newGroups.splice(i, 1);
+    groupIdSet.delete(g.id);
+    if (!newNodes.has(g.id)) newNodes.set(g.id, {label:g.title||g.id, shape:'rect', parent:g.parent||null, classes:[]});
+  }
   return {newNodes, newEdges, newGroups, newClassDefs, dir};
 }

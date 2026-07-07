@@ -44,8 +44,10 @@ button:disabled{opacity:.35;cursor:default;}
 /* ── Main area ── */
 #main{flex:1;display:flex;min-height:0;}
 #canvasWrap{flex:1;position:relative;overflow:hidden;cursor:default;background-color:var(--bg);}
-#canvasWrap.pan-cursor{cursor:grabbing;}
-#canvasWrap.ctrl-hover{cursor:grab;}
+#canvasWrap.pan-cursor{cursor:grabbing !important;}
+/* Grab cursor when pan is the active action: Ctrl in normal mode, or no Ctrl in pan mode. */
+#canvasWrap.ctrl-hover:not(.pan-mode){cursor:grab;}
+#canvasWrap.pan-mode:not(.ctrl-hover):not(.pan-cursor){cursor:grab;}
 svg#canvas{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;}
 .node .shape{fill:#33343d;stroke:var(--accent);stroke-width:2;cursor:grab;}
 .node.selected .shape{stroke:var(--accent2);stroke-width:2.5;}
@@ -71,7 +73,11 @@ svg#canvas{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visibl
 input[type=text]{background:#1e1f27;color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px 7px;font-size:12px;width:100%;}
 input[type=color]{width:28px;height:26px;padding:2px;border-radius:5px;border:1px solid var(--border);background:#2e2f38;cursor:pointer;}
 textarea{width:100%;background:#16171c;color:#b8e0b8;border:1px solid var(--border);border-radius:5px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11px;padding:8px;resize:none;}
-#mmdOut{min-height:160px;}#mmdIn{height:80px;}
+#mmdOut{min-height:160px;line-height:16px;white-space:pre;overflow:auto;position:relative;z-index:1;background:transparent;}
+#mmdOutWrap{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:5px;background:#16171c;}
+#mmdOutWrap textarea{border:none;border-radius:0;}
+#mmdOutHiBar{position:absolute;left:0;right:0;display:none;pointer-events:none;background:rgba(108,140,255,0.22);border-left:2px solid var(--accent);z-index:0;}
+#mmdIn{height:80px;}
 .hint{font-size:11px;color:var(--muted);line-height:1.5;}
 .btn-row{display:flex;gap:5px;}.btn-row button{flex:1;font-size:11px;padding:5px 4px;}
 .classdef-item{display:flex;align-items:center;gap:5px;font-size:11px;padding:3px 0;}
@@ -83,7 +89,7 @@ textarea{width:100%;background:#16171c;color:#b8e0b8;border:1px solid var(--bord
 #propPanel{display:none;}#propPanel.visible{display:block;}
 
 /* ── Inline input overlay ── */
-#inlineInput{position:absolute;display:none;z-index:500;background:#1e1f27;color:#e6e6ea;border:2px solid var(--accent);border-radius:5px;padding:4px 8px;font-size:13px;font-family:inherit;text-align:center;outline:none;box-shadow:0 4px 16px rgba(0,0,0,.6);}
+#inlineInput{position:absolute;display:none;z-index:500;background:#1e1f27;color:#e6e6ea;border:2px solid var(--accent);border-radius:5px;padding:4px 8px;font-size:13px;font-family:inherit;text-align:center;outline:none;box-shadow:0 4px 16px rgba(0,0,0,.6);resize:none;overflow:hidden;line-height:1.35;white-space:pre;}
 
 /* ── Shape dropdown ── */
 .shape-dropdown{position:relative;display:inline-block;}
@@ -152,3 +158,17 @@ textarea{width:100%;background:#16171c;color:#b8e0b8;border:1px solid var(--bord
 .file-folder:hover{background:#2e2f38;color:var(--text);}
 .folder-toggle{font-size:10px;width:10px;flex-shrink:0;color:var(--muted);}
 .folder-name{font-weight:500;}
+
+/* ── Editable Mermaid source ── */
+#mmdOut:focus{outline:none;border-color:var(--accent);}
+#expandSourceBtn{background:#2e2f38;color:var(--muted);}
+#expandSourceBtn:hover{color:var(--text);}
+
+/* ── Expanded source editor modal ── */
+#sourceModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1200;align-items:center;justify-content:center;}
+#sourceModal.open{display:flex;}
+.source-modal-card{display:flex;flex-direction:column;width:min(900px,92vw);height:min(80vh,760px);background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 48px rgba(0,0,0,.6);overflow:hidden;}
+.source-modal-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.source-modal-header button{font-size:11px;padding:4px 10px;}
+#mmdOutBig{flex:1;border:none;border-radius:0;font-size:13px;line-height:1.5;padding:14px;resize:none;}
+#mmdOutBig:focus{outline:none;}

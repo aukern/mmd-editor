@@ -1,5 +1,5 @@
 import { S } from './state.js';
-import { makeSVG, nodeSize, edgeAnchor, getPortPositions, applyTransform } from './utils.js';
+import { makeSVG, nodeSize, edgeAnchor, getPortPositions, getGroupPortPositions, groupTitleHeight, applyTransform } from './utils.js';
 import { edgeStyles, edgeTokens } from './constants.js';
 
 // ── Shape element builder ─────────────────────────────────────────────────────
@@ -54,24 +54,72 @@ function renderTextLines(parent, label, lineH) {
   }
 }
 
+export function clearPorts() {
+  const p = document.getElementById('portsLayer'); if (p) p.innerHTML = '';
+}
+
+// A port belongs to a node OR a group — the id is opaque to the drag machinery,
+// so the same circle handler drives both (see events.js handlePortMousedown).
+function drawPort(pos, id, onPortMousedown) {
+  const c = makeSVG('circle');
+  c.setAttribute('cx', pos.x); c.setAttribute('cy', pos.y); c.setAttribute('r', 9);
+  c.setAttribute('class', 'port-handle');
+  c.addEventListener('mouseenter', () => clearTimeout(S.portHideTimer));
+  c.addEventListener('mouseleave', () => {
+    if (!S.portDrag) { S.portHideTimer = setTimeout(hoverPortTimeout, 300); }
+  });
+  if (onPortMousedown) c.addEventListener('mousedown', ev => onPortMousedown(ev, id, pos));
+  document.getElementById('portsLayer').appendChild(c);
+}
+
 export function renderPorts(nodeId, { onPortMousedown } = {}) {
-  const portsLayer = document.getElementById('portsLayer');
-  portsLayer.innerHTML = '';
+  clearPorts();
   if (!nodeId || S.connectMode) return;
   const n = S.nodes.find(x => x.id === nodeId); if (!n) return;
-  getPortPositions(n).forEach(pos => {
-    const c = makeSVG('circle');
-    c.setAttribute('cx', pos.x); c.setAttribute('cy', pos.y); c.setAttribute('r', 9);
-    c.setAttribute('class', 'port-handle');
-    c.addEventListener('mouseenter', () => clearTimeout(S.portHideTimer));
-    c.addEventListener('mouseleave', () => {
-      if (!S.portDrag) { S.portHideTimer = setTimeout(() => { S.hoveredNodeId = null; renderPorts(null); }, 300); }
-    });
-    if (onPortMousedown) {
-      c.addEventListener('mousedown', ev => onPortMousedown(ev, nodeId, pos));
-    }
-    portsLayer.appendChild(c);
-  });
+  getPortPositions(n).forEach(pos => drawPort(pos, nodeId, onPortMousedown));
+}
+
+export function renderGroupPorts(groupId, { onPortMousedown } = {}) {
+  clearPorts();
+  if (!groupId || S.connectMode) return;
+  const g = S.groups.find(x => x.id === groupId); if (!g) return;
+  getGroupPortPositions(g).forEach(pos => drawPort(pos, groupId, onPortMousedown));
+}
+
+// Shared hover-out: clear hover state, but keep a selected group's ports up so
+// its side/bottom ports stay grabbable (the box interior is click-through, so
+// pure hover can't hold them while the cursor crosses child nodes).
+function hoverPortTimeout() {
+  S.hoveredNodeId = null; S.hoveredGroupId = null;
+  if (S.selected && S.selected.type === 'group' && !S.portDrag && !S.connectMode) {
+    const { onPortMousedown } = window._editorPortHandlers || {};
+    renderGroupPorts(S.selected.id, { onPortMousedown });
+  } else {
+    clearPorts();
+  }
+}
+
+// Shared click-to-connect handler used by both node and group mousedown in
+// connect mode. `center` supplies the ghost-line origin ({x,y}).
+function connectModeClick(id, label, center) {
+  const { addEdge } = window._editorMutations || {};
+  if (!S.connectFrom) {
+    S.connectFrom = id;
+    document.getElementById('statusText').textContent = `Click target (from: "${label}")`;
+    const { spawnConnectGhost } = window._editorEvents || {};
+    if (spawnConnectGhost) spawnConnectGhost(center);
+  } else if (S.connectFrom !== id) {
+    const { pushUndo } = window._editorUtils || {};
+    if (pushUndo) pushUndo();
+    if (addEdge) addEdge(S.connectFrom, id, '', document.getElementById('arrowSelect').value);
+    if (S.connectGhost && S.connectGhost.parentNode) S.connectGhost.parentNode.removeChild(S.connectGhost);
+    S.connectGhost = null;
+    S.connectFrom = null;
+    S.connectMode = false;
+    document.getElementById('connectBtn').classList.remove('active');
+    document.getElementById('statusText').textContent = 'Connected.';
+    render();
+  }
 }
 
 // ── Mermaid output ────────────────────────────────────────────────────────────
@@ -97,30 +145,48 @@ function shapeToken(n) {
 
 export function getMermaidText() {
   const lines = ['flowchart ' + S.direction];
+  // Records the 0-based line range each element occupies, so the source panel
+  // can highlight the selected node/edge/group (see ui/source.js).
+  const map = {};
   Object.entries(S.classDefs).forEach(([name, cd]) => {
     const props = []; if (cd.fill) props.push('fill:'+cd.fill); if (cd.stroke) props.push('stroke:'+cd.stroke); if (cd.color) props.push('color:'+cd.color);
     lines.push(`    classDef ${name} ${props.join(',')}`);
   });
-  S.groups.forEach(g => {
-    lines.push(`    subgraph ${g.id}["${g.title}"]`);
-    if (g.direction) lines.push(`        direction ${g.direction}`);
-    S.nodes.filter(n => n.parent === g.id).forEach(n => lines.push('        ' + shapeToken(n)));
-    lines.push('    end');
-  });
-  S.nodes.filter(n => !n.parent).forEach(n => lines.push('    ' + shapeToken(n)));
+  // Emit subgraphs recursively so nested groups round-trip as nested subgraphs.
+  const emitGroup = (g, depth) => {
+    const ind = '    '.repeat(depth);
+    const start = lines.length;
+    lines.push(`${ind}subgraph ${g.id}["${labelForMmd(g.title)}"]`);
+    if (g.direction) lines.push(`${ind}    direction ${g.direction}`);
+    S.nodes.filter(n => n.parent === g.id).forEach(n => { map['node:'+n.id] = [lines.length, lines.length]; lines.push(`${ind}    ` + shapeToken(n)); });
+    S.groups.filter(cg => (cg.parent || null) === g.id).forEach(cg => emitGroup(cg, depth + 1));
+    lines.push(`${ind}end`);
+    map['group:'+g.id] = [start, lines.length - 1];
+  };
+  S.groups.filter(g => !g.parent).forEach(g => emitGroup(g, 1));
+  S.nodes.filter(n => !n.parent).forEach(n => { map['node:'+n.id] = [lines.length, lines.length]; lines.push('    ' + shapeToken(n)); });
   S.edges.forEach(e => {
     const tok = edgeTokens[e.type] || '-->';
-    lines.push(e.label ? `    ${e.from} ${tok}|${e.label}| ${e.to}` : `    ${e.from} ${tok} ${e.to}`);
+    map['edge:'+e.id] = [lines.length, lines.length];
+    lines.push(e.label ? `    ${e.from} ${tok}|${labelForMmd(e.label)}| ${e.to}` : `    ${e.from} ${tok} ${e.to}`);
   });
   S.nodes.forEach(n => {
     if (n.style) { const props = []; if (n.style.fill) props.push('fill:'+n.style.fill); if (n.style.stroke) props.push('stroke:'+n.style.stroke); if (n.style.color) props.push('color:'+n.style.color); if (props.length) lines.push(`    style ${n.id} ${props.join(',')}`); }
   });
   S.nodes.forEach(n => { (n.classes||[]).forEach(cls => lines.push(`    class ${n.id} ${cls}`)); });
+  S.sourceLineMap = map;
   return lines.join('\n');
 }
 
 export function updateMermaidOutput() {
-  document.getElementById('mmdOut').value = getMermaidText();
+  // The source panel is now editable — never clobber a textarea the user is
+  // actively typing in. Keep both the sidebar and the expanded editor in sync.
+  const txt = getMermaidText();
+  const out = document.getElementById('mmdOut');
+  if (out && document.activeElement !== out) out.value = txt;
+  const big = document.getElementById('mmdOutBig');
+  const modal = document.getElementById('sourceModal');
+  if (big && modal && modal.classList.contains('open') && document.activeElement !== big) big.value = txt;
 }
 
 export function updatePropsPanel() {
@@ -216,18 +282,39 @@ export function render() {
     rect.setAttribute('class','group-rect'+(S.selected && S.selected.type==='group' && S.selected.id===g.id ? ' selected' : ''));
     rect.style.pointerEvents = 'none'; grp.appendChild(rect);
     const tb = makeSVG('rect');
-    tb.setAttribute('x',g.x); tb.setAttribute('y',g.y); tb.setAttribute('width',g.w); tb.setAttribute('height',24); tb.setAttribute('rx',8);
+    tb.setAttribute('x',g.x); tb.setAttribute('y',g.y); tb.setAttribute('width',g.w); tb.setAttribute('height',groupTitleHeight(g.title)); tb.setAttribute('rx',8);
     tb.setAttribute('class','group-title-bar');
     tb.addEventListener('mousedown', ev => {
       ev.stopPropagation();
       if (ev.detail >= 2) return;
+      if (S.connectMode) { connectModeClick(g.id, g.title, {x: g.x+g.w/2, y: g.y+g.h/2}); return; }
       const { pushUndo, svgPoint: sp } = window._editorUtils || {};
       if (pushUndo) pushUndo();
       S.selected = {type:'group', id:g.id};
       const pt = sp ? sp(ev) : {x:0,y:0};
-      const members = S.nodes.filter(n => n.parent === g.id).map(n => ({id:n.id, x:n.x, y:n.y}));
-      S.groupDrag = {id:g.id, mode:'move', startPX:pt.x, startPY:pt.y, orig:{x:g.x,y:g.y,w:g.w,h:g.h}, memberOrig:members};
+      // Moving a group carries all descendant groups and their nodes with it.
+      const descGroupIds = new Set();
+      const stack = [g.id];
+      while (stack.length) { const cur = stack.pop(); S.groups.forEach(x => { if ((x.parent||null)===cur && !descGroupIds.has(x.id)) { descGroupIds.add(x.id); stack.push(x.id); } }); }
+      const groupOrig = [...descGroupIds].map(id => { const cg = S.groups.find(x=>x.id===id); return {id, x:cg.x, y:cg.y}; });
+      const containerIds = new Set([g.id, ...descGroupIds]);
+      const members = S.nodes.filter(n => containerIds.has(n.parent)).map(n => ({id:n.id, x:n.x, y:n.y}));
+      S.groupDrag = {id:g.id, mode:'move', startPX:pt.x, startPY:pt.y, orig:{x:g.x,y:g.y,w:g.w,h:g.h}, memberOrig:members, groupOrig};
       render();
+    });
+    // Hovering the title bar reveals connection ports around the whole group box
+    // (the box interior stays click-through so child nodes remain interactive).
+    tb.addEventListener('mouseenter', () => {
+      clearTimeout(S.portHideTimer);
+      if (!S.drag && !S.portDrag && !S.groupDrag && !S.connectMode) {
+        S.hoveredGroupId = g.id; S.hoveredNodeId = null;
+        const { onPortMousedown } = window._editorPortHandlers || {};
+        renderGroupPorts(g.id, { onPortMousedown });
+      }
+    });
+    tb.addEventListener('mouseleave', () => {
+      if (S.portDrag) return;
+      S.portHideTimer = setTimeout(hoverPortTimeout, 300);
     });
     tb.addEventListener('dblclick', ev => {
       ev.stopPropagation();
@@ -237,7 +324,7 @@ export function render() {
       });
     });
     grp.appendChild(tb);
-    const ttxt = makeSVG('text'); ttxt.setAttribute('x',g.x+10); ttxt.setAttribute('y',g.y+16); ttxt.setAttribute('class','group-title-text'); ttxt.textContent = g.title; grp.appendChild(ttxt);
+    (g.title || '').split('\n').forEach((ln, i) => { const ttxt = makeSVG('text'); ttxt.setAttribute('x',g.x+10); ttxt.setAttribute('y',g.y+16+i*16); ttxt.setAttribute('class','group-title-text'); ttxt.textContent = ln; grp.appendChild(ttxt); });
     const handle = makeSVG('rect');
     handle.setAttribute('x',g.x+g.w-12); handle.setAttribute('y',g.y+g.h-12); handle.setAttribute('width',12); handle.setAttribute('height',12); handle.setAttribute('class','group-resize');
     handle.addEventListener('mousedown', ev => {
@@ -250,7 +337,7 @@ export function render() {
       render();
     });
     grp.appendChild(handle);
-    grp.addEventListener('click', ev => { ev.stopPropagation(); S.selected={type:'group',id:g.id}; render(); });
+    grp.addEventListener('click', ev => { ev.stopPropagation(); if (S.connectMode) return; S.selected={type:'group',id:g.id}; render(); });
     groupsLayer.appendChild(grp);
   });
 
@@ -301,9 +388,13 @@ export function render() {
     line.style.pointerEvents = 'none';
     edgesLayer.appendChild(line);
     if (e.label) {
-      const mx=(p1.x+p2.x)/2, my=(p1.y+p2.y)/2, bw=e.label.length*6.5+10;
-      const bg = makeSVG('rect'); bg.setAttribute('x',mx-bw/2); bg.setAttribute('y',my-9); bg.setAttribute('width',bw); bg.setAttribute('height',16); bg.setAttribute('rx',3); bg.setAttribute('class','edge-label-bg'); bg.style.pointerEvents='none'; edgesLayer.appendChild(bg);
-      const txt = makeSVG('text'); txt.setAttribute('x',mx); txt.setAttribute('y',my); txt.setAttribute('class','edge-label-text'); txt.textContent=e.label; edgesLayer.appendChild(txt);
+      const mx=(p1.x+p2.x)/2, my=(p1.y+p2.y)/2;
+      const elines = e.label.split('\n'), lineH = 14;
+      const maxLen = Math.max(...elines.map(l => l.length));
+      const bw = maxLen*6.5+10, bh = elines.length*lineH + 4;
+      const bg = makeSVG('rect'); bg.setAttribute('x',mx-bw/2); bg.setAttribute('y',my-bh/2); bg.setAttribute('width',bw); bg.setAttribute('height',bh); bg.setAttribute('rx',3); bg.setAttribute('class','edge-label-bg'); bg.style.pointerEvents='none'; edgesLayer.appendChild(bg);
+      const startY = my - (elines.length-1)*lineH/2;
+      elines.forEach((ln,i) => { const txt = makeSVG('text'); txt.setAttribute('x',mx); txt.setAttribute('y',startY+i*lineH); txt.setAttribute('class','edge-label-text'); txt.textContent=ln; edgesLayer.appendChild(txt); });
     }
   });
 
@@ -334,36 +425,13 @@ export function render() {
     });
     g.addEventListener('mouseleave', () => {
       if (S.portDrag) return;
-      S.portHideTimer = setTimeout(() => { S.hoveredNodeId=null; renderPorts(null); }, 300);
+      S.portHideTimer = setTimeout(hoverPortTimeout, 300);
     });
 
     g.addEventListener('mousedown', ev => {
       ev.stopPropagation();
       if (ev.detail >= 2) return;
-      if (S.connectMode) {
-        const { addEdge, takeSnapshot } = window._editorMutations || {};
-        if (!S.connectFrom) {
-          S.connectFrom = n.id;
-          document.getElementById('statusText').textContent = `Click target node (from: "${n.label}")`;
-          // Spawn ghost line from this node's center
-          const { spawnConnectGhost } = window._editorEvents || {};
-          if (spawnConnectGhost) spawnConnectGhost(n);
-        } else if (S.connectFrom !== n.id) {
-          const { pushUndo } = window._editorUtils||{};
-          if (pushUndo) pushUndo();
-          if (addEdge) addEdge(S.connectFrom, n.id, '', document.getElementById('arrowSelect').value);
-          // Remove ghost line
-          if (S.connectGhost && S.connectGhost.parentNode) S.connectGhost.parentNode.removeChild(S.connectGhost);
-          S.connectGhost = null;
-          S.connectFrom = null;
-          // Exit connect mode automatically
-          S.connectMode = false;
-          document.getElementById('connectBtn').classList.remove('active');
-          document.getElementById('statusText').textContent = 'Connected.';
-          render();
-        }
-        return;
-      }
+      if (S.connectMode) { connectModeClick(n.id, n.label, n); return; }
       if (ev.shiftKey) {
         if (S.multiSelect.has(n.id)) S.multiSelect.delete(n.id); else S.multiSelect.add(n.id);
         S.selected = null; render(); return;
@@ -380,8 +448,8 @@ export function render() {
     g.addEventListener('dblclick', ev => {
       ev.stopPropagation();
       const { activateInline, scheduleSnapshot } = window._editorInline || {};
-      if (activateInline) activateInline(n.x*S.zoom+S.panX, n.y*S.zoom+S.panY, n.label.replace(/\n/g,'\\n'), w*S.zoom+40, val => {
-        if (val.trim()) { const { pushUndo } = window._editorUtils||{}; if(pushUndo)pushUndo(); n.label=val.trim().replace(/\\n/g,'\n'); render(); const { countMutation: cm3 } = window._editorHistory||{}; if(cm3)cm3(); }
+      if (activateInline) activateInline(n.x*S.zoom+S.panX, n.y*S.zoom+S.panY, n.label, w*S.zoom+40, val => {
+        if (val.trim()) { const { pushUndo } = window._editorUtils||{}; if(pushUndo)pushUndo(); n.label=val.trim(); render(); const { countMutation: cm3 } = window._editorHistory||{}; if(cm3)cm3(); }
       });
     });
 
@@ -391,6 +459,13 @@ export function render() {
   if (S.hoveredNodeId && !S.portDrag && !S.connectMode) {
     const { onPortMousedown } = window._editorPortHandlers || {};
     renderPorts(S.hoveredNodeId, { onPortMousedown });
+  } else if (S.hoveredGroupId && !S.portDrag && !S.connectMode) {
+    const { onPortMousedown } = window._editorPortHandlers || {};
+    renderGroupPorts(S.hoveredGroupId, { onPortMousedown });
+  } else if (S.selected && S.selected.type === 'group' && !S.portDrag && !S.connectMode) {
+    // A selected group keeps its ports up so they stay easy to grab.
+    const { onPortMousedown } = window._editorPortHandlers || {};
+    renderGroupPorts(S.selected.id, { onPortMousedown });
   }
 
   updatePropsPanel();
@@ -398,4 +473,5 @@ export function render() {
   updateClassDefList();
   updateUndoRedo();
   applyTransform();
+  if (window._editorSource && window._editorSource.syncHighlight) window._editorSource.syncHighlight();
 }

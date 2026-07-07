@@ -34,6 +34,10 @@ const SNAPSHOT_EVERY = 20; // mutations before auto-snapshot
 export function countMutation() {
   if (S.previewMode) return;
   S.mutationCount = (S.mutationCount || 0) + 1;
+  // Every counted mutation is a real change (add/delete/edit) — persist it.
+  // scheduleSave is debounced and no-ops when there's no open file.
+  const { scheduleSave } = window._editorFile || {};
+  if (scheduleSave) scheduleSave();
   if (S.mutationCount >= SNAPSHOT_EVERY) {
     S.mutationCount = 0;
     takeSnapshot('Auto');
