@@ -1,3 +1,23 @@
+# Diagrams are user content (kept out of version control)
 diagrams/
+
+# Python
 __pycache__/
 .server.pid
+
+# Node / Electron
+node_modules/
+dist/
+out/
+npm-debug.log*
+yarn-error.log*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Local AI-tooling config
+.claude/
+.codex/
+.agents/
