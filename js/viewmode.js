@@ -6,6 +6,48 @@ import { applyTransform } from './utils.js';
 // happens through the Mermaid Source panel (see ui/source.js). The flowchart
 // visual editor is untouched.
 
+// Best-effort: from a click on the rendered SVG, pull the most specific label
+// text, then find the first source line containing it (or one of its words).
+function tokenFromEvent(ev) {
+  let el = ev.target;
+  if (el.tagName === 'text' || el.tagName === 'tspan') { const t = el.textContent.trim(); if (t) return t; }
+  const g = el.closest && el.closest('g');
+  if (g) {
+    const lbl = g.querySelector('text, tspan, .nodeLabel, foreignObject span, foreignObject div');
+    if (lbl) { const t = lbl.textContent.trim(); if (t) return t; }
+  }
+  const t = (el.textContent || '').trim();
+  return (t && t.length <= 80) ? t : null;
+}
+
+function findSourceLine(token) {
+  const lines = (S.rawText || '').split('\n');
+  const cands = [token.trim(), ...token.trim().split(/\s+/)].filter(t => t && t.length >= 2);
+  for (const c of cands) {
+    const cl = c.toLowerCase();
+    const idx = lines.findIndex(l => l.toLowerCase().includes(cl));
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+// Attach the click-to-locate handler once (the #viewPan element persists across
+// re-renders; only its innerHTML changes).
+export function initViewmode() {
+  const pan = document.getElementById('viewPan');
+  if (!pan) return;
+  pan.addEventListener('click', ev => {
+    if (!S.viewMode) return;
+    const tok = tokenFromEvent(ev);
+    if (!tok) return;
+    const line = findSourceLine(tok);
+    if (line >= 0 && window._editorSource && window._editorSource.highlightSourceLine) {
+      window._editorSource.highlightSourceLine(line);
+      document.getElementById('statusText').textContent = `Source line ${line + 1}: "${tok.slice(0, 40)}"`;
+    }
+  });
+}
+
 export function detectDiagramType(text) {
   const first = (text || '').split('\n').map(l => l.trim()).find(l => l && !l.startsWith('%%')) || '';
   const kw = first.split(/[\s{]/)[0].toLowerCase();

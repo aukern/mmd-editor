@@ -45,12 +45,14 @@ let activeRange = null;
 let lastKey = null;
 // Find-in-code state. A search match takes priority over the selection highlight.
 let searchRange = null, searchMatches = [], searchIdx = 0;
+// A line highlighted externally (e.g. clicking a rendered element in view mode).
+let externalRange = null;
 
 function positionHighlightBar() {
   const bar = document.getElementById('mmdOutHiBar');
   const ta = document.getElementById('mmdOut');
   if (!bar || !ta) return;
-  const range = searchRange || activeRange;
+  const range = searchRange || externalRange || activeRange;
   if (!range) { bar.style.display = 'none'; return; }
   const [a, b] = range;
   bar.style.display = 'block';
@@ -85,7 +87,21 @@ function runSearch(scrollTo, reset) {
   positionHighlightBar();
 }
 
+// Highlight and scroll to a specific source line (0-based). Used by view-mode
+// click-to-locate; cleared by the next selection sync in edit mode.
+export function highlightSourceLine(lineIdx) {
+  const ta = document.getElementById('mmdOut');
+  if (!ta || lineIdx < 0) return;
+  externalRange = [lineIdx, lineIdx];
+  const top = lineIdx * LINE_H, bottom = (lineIdx + 1) * LINE_H;
+  const viewTop = ta.scrollTop, viewH = ta.clientHeight - PAD_TOP * 2;
+  if (top < viewTop) ta.scrollTop = top;
+  else if (bottom > viewTop + viewH) ta.scrollTop = Math.min(bottom - viewH, top);
+  positionHighlightBar();
+}
+
 function syncHighlight() {
+  externalRange = null;   // edit-mode selection supersedes any view-mode click highlight
   const ta = document.getElementById('mmdOut');
   const map = S.sourceLineMap || {};
   const key = (S.selected && S.selected.type) ? (S.selected.type + ':' + S.selected.id) : null;
@@ -141,7 +157,7 @@ function runBigSearch(scrollTo, reset) {
 }
 
 export function initSourceEditor() {
-  window._editorSource = { syncHighlight };
+  window._editorSource = { syncHighlight, highlightSourceLine };
   const outEl = document.getElementById('mmdOut');
   if (outEl) outEl.addEventListener('scroll', positionHighlightBar);
 

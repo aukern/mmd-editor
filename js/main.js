@@ -12,7 +12,7 @@ import { initModal } from './ui/modal.js';
 import { buildMenuBar, buildExportDropdown } from './ui/menu.js';
 import { initSourceEditor } from './ui/source.js';
 import { initDiffPanel } from './ui/diff.js';
-import { enterViewMode, exitViewMode, renderViewDiagram, fitViewDiagram, detectDiagramType } from './viewmode.js';
+import { enterViewMode, exitViewMode, renderViewDiagram, fitViewDiagram, detectDiagramType, initViewmode } from './viewmode.js';
 import { autoArrange } from './layout.js';
 
 // ── Expose globals so cross-module callbacks work without circular imports ─────
@@ -54,6 +54,7 @@ function init() {
   initKeyboard();
   initSourceEditor();
   initDiffPanel();
+  initViewmode();
   initCollapsibleSidebar();
 
   // Close shape/export dropdowns on outside click
