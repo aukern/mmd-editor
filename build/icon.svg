@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="200" fill="#23242c"/>
+  <polygon points="512,168 810,340 810,684 512,856 214,684 214,340"
+           fill="#2b3050" stroke="#6c8cff" stroke-width="46" stroke-linejoin="round"/>
+  <text x="512" y="600" font-family="'DejaVu Sans','Arial',sans-serif" font-size="300"
+        font-weight="700" fill="#6c8cff" text-anchor="middle">M</text>
+</svg>
