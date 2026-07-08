@@ -164,6 +164,10 @@
       <div class="sb-head"><span class="sb-title">Mermaid source (.mmd)</span><button id="expandSourceBtn" title="Expand editor" style="margin-left:auto;font-size:11px;padding:2px 7px">⤢ Expand</button></div>
       <div class="sb-body">
         <div id="mmdOutWrap"><div id="mmdOutHiBar"></div><textarea id="mmdOut" spellcheck="false" placeholder="flowchart TD&#10;    A[Start] --> B{Decision}"></textarea></div>
+        <div class="sb-row tight" style="margin-top:6px">
+          <input type="text" id="mmdSearch" placeholder="🔍 Find in code… (Enter = next)" style="flex:1">
+          <span id="mmdSearchInfo" class="hint" style="min-width:40px;text-align:right"></span>
+        </div>
         <div class="btn-row" style="margin-top:6px"><button id="copyBtn">Copy</button></div>
         <p class="hint" style="margin-top:2px">Editable — changes apply live and are undoable.</p>
       </div>

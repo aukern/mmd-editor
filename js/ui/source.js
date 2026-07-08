@@ -43,16 +43,46 @@ function applyNow(text) {
 const LINE_H = 16, PAD_TOP = 8;
 let activeRange = null;
 let lastKey = null;
+// Find-in-code state. A search match takes priority over the selection highlight.
+let searchRange = null, searchMatches = [], searchIdx = 0;
 
 function positionHighlightBar() {
   const bar = document.getElementById('mmdOutHiBar');
   const ta = document.getElementById('mmdOut');
   if (!bar || !ta) return;
-  if (!activeRange) { bar.style.display = 'none'; return; }
-  const [a, b] = activeRange;
+  const range = searchRange || activeRange;
+  if (!range) { bar.style.display = 'none'; return; }
+  const [a, b] = range;
   bar.style.display = 'block';
   bar.style.top = (PAD_TOP + a * LINE_H - ta.scrollTop) + 'px';
   bar.style.height = ((b - a + 1) * LINE_H) + 'px';
+}
+
+// Highlight the source line(s) containing the search box's query. `reset` starts
+// again from the first match (typing); otherwise keeps the current match index.
+function runSearch(scrollTo, reset) {
+  const ta = document.getElementById('mmdOut');
+  const box = document.getElementById('mmdSearch');
+  const info = document.getElementById('mmdSearchInfo');
+  if (!ta || !box) return;
+  const q = box.value.trim();
+  if (!q) { searchMatches = []; searchRange = null; if (info) info.textContent = ''; positionHighlightBar(); return; }
+  if (reset) searchIdx = 0;
+  const ql = q.toLowerCase();
+  searchMatches = [];
+  ta.value.split('\n').forEach((ln, i) => { if (ln.toLowerCase().includes(ql)) searchMatches.push(i); });
+  if (!searchMatches.length) { searchRange = null; if (info) info.textContent = '0/0'; positionHighlightBar(); return; }
+  if (searchIdx >= searchMatches.length) searchIdx = 0;
+  const line = searchMatches[searchIdx];
+  searchRange = [line, line];
+  if (info) info.textContent = `${searchIdx + 1}/${searchMatches.length}`;
+  if (scrollTo) {
+    const top = line * LINE_H, bottom = (line + 1) * LINE_H;
+    const viewTop = ta.scrollTop, viewH = ta.clientHeight - PAD_TOP * 2;
+    if (top < viewTop) ta.scrollTop = top;
+    else if (bottom > viewTop + viewH) ta.scrollTop = Math.min(bottom - viewH, top);
+  }
+  positionHighlightBar();
 }
 
 function syncHighlight() {
@@ -88,9 +118,26 @@ export function initSourceEditor() {
   const onInput = (srcEl, otherEl) => () => {
     if (otherEl && document.activeElement !== otherEl) otherEl.value = srcEl.value;
     scheduleApply(srcEl.value);
+    runSearch(false, false);   // keep find matches fresh as the code changes
   };
   if (out) out.addEventListener('input', onInput(out, big));
   if (big) big.addEventListener('input', onInput(big, out));
+
+  // Find-in-code box: highlight matching source lines; Enter/Shift+Enter cycles.
+  const searchBox = document.getElementById('mmdSearch');
+  if (searchBox) {
+    searchBox.addEventListener('input', () => runSearch(true, true));
+    searchBox.addEventListener('keydown', ev => {
+      ev.stopPropagation();
+      if (ev.key === 'Enter' && searchMatches.length) {
+        ev.preventDefault();
+        searchIdx = (searchIdx + (ev.shiftKey ? -1 : 1) + searchMatches.length) % searchMatches.length;
+        runSearch(true, false);
+      } else if (ev.key === 'Escape') {
+        searchBox.value = ''; runSearch(false, true); searchBox.blur();
+      }
+    });
+  }
 
   if (expandBtn && modal && big) {
     expandBtn.addEventListener('click', () => {

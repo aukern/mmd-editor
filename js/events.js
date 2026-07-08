@@ -182,8 +182,8 @@ export function initCanvasEvents() {
 
   canvasWrap.addEventListener('wheel', ev => {
     // Scroll-to-zoom follows the same mode/Ctrl rule as drag-to-pan, so Pan mode
-    // gives you zoom without holding Ctrl (and Ctrl inverts it).
-    const zoomActive = ev.ctrlKey !== S.panMode;
+    // (and view mode, where pan is forced on) gives zoom without holding Ctrl.
+    const zoomActive = ev.ctrlKey !== (S.panMode || S.viewMode);
     if (zoomActive) {
       ev.preventDefault();
       const delta = ev.deltaY>0 ? 0.9 : 1/0.9;
