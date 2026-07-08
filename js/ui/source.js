@@ -4,6 +4,7 @@ import { pushUndo } from '../utils.js';
 import { getMermaidText, updateUndoRedo } from '../render.js';
 import { countMutation } from '../history.js';
 import { scheduleSave } from '../file.js';
+import { renderViewDiagram } from '../viewmode.js';
 
 // The Mermaid source panel is a live, editable view of the diagram. Edits are
 // debounced, then applied via applyMermaidText (which preserves node positions).
@@ -18,6 +19,15 @@ function scheduleApply(text) {
 
 function applyNow(text) {
   if (S.previewMode) { document.getElementById('statusText').textContent = 'Exit preview mode first (Accept or Cancel).'; return; }
+  // View mode: the raw text IS the diagram — re-render via Mermaid, autosave, diff.
+  if (S.viewMode) {
+    if (text === S.rawText) return;
+    S.rawText = text;
+    renderViewDiagram(text);
+    countMutation();                 // schedules autosave + snapshot cadence (uses raw text)
+    if (window._editorDiff && window._editorDiff.update) window._editorDiff.update();
+    return;
+  }
   // Skip if unchanged since the last apply, or already matching canonical output.
   if (lastApplied !== null && text.trim() === lastApplied.trim()) return;
   if (text.trim() === getMermaidText().trim()) { lastApplied = text; return; }

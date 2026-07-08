@@ -178,7 +178,14 @@ export function getMermaidText() {
   return lines.join('\n');
 }
 
+// The authoritative source text: raw diagram in view mode, else the serialized
+// flowchart model. Used by autosave, snapshots, and the diff panel.
+export function getCurrentSource() {
+  return S.viewMode ? (S.rawText || '') : getMermaidText();
+}
+
 export function updateMermaidOutput() {
+  if (S.viewMode) return;   // in view mode the textarea holds the raw source; don't overwrite it
   // The source panel is now editable — never clobber a textarea the user is
   // actively typing in. Keep both the sidebar and the expanded editor in sync.
   const txt = getMermaidText();
@@ -271,6 +278,7 @@ export function updateUndoRedo() {
 
 // ── Main render ───────────────────────────────────────────────────────────────
 export function render() {
+  if (S.viewMode) return;   // view mode renders via Mermaid (viewmode.js), not the editable canvas
   const groupsLayer = document.getElementById('groupsLayer');
   const edgesLayer = document.getElementById('edgesLayer');
   const nodesLayer = document.getElementById('nodesLayer');

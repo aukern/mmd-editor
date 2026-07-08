@@ -28,7 +28,28 @@ const EXPORT_STYLE = `
 .group-title-text { fill: #9a9aa5; font-size: 12px; font-weight: 600; }
 `;
 
+// In view mode the diagram is a Mermaid-rendered SVG — export that directly.
+function viewExportSVGString() {
+  const vsvg = document.querySelector('#viewPan svg');
+  if (!vsvg) return null;
+  const clone = vsvg.cloneNode(true);
+  const b = vsvg.viewBox && vsvg.viewBox.baseVal;
+  if (b && b.width) { clone.setAttribute('width', b.width); clone.setAttribute('height', b.height); }
+  clone.style.width = ''; clone.style.height = '';
+  return new XMLSerializer().serializeToString(clone);
+}
+
+function exportBBox() {
+  if (S.viewMode) {
+    const vsvg = document.querySelector('#viewPan svg');
+    const b = vsvg && vsvg.viewBox && vsvg.viewBox.baseVal;
+    if (b && b.width) return { x: b.x, y: b.y, w: b.width, h: b.height };
+  }
+  return computeBoundingBox();
+}
+
 function buildExportSVGString() {
+  if (S.viewMode) { const s = viewExportSVGString(); if (s) return s; }
   const svg = document.getElementById('canvas');
   const clone = svg.cloneNode(true);
   const bb = computeBoundingBox();
@@ -61,7 +82,7 @@ export function exportSVG() {
 
 export function exportPNG() {
   const svgStr = buildExportSVGString();
-  const bb = computeBoundingBox();
+  const bb = exportBBox();
   const b64 = btoa(unescape(encodeURIComponent(svgStr)));
   const dataUrl = 'data:image/svg+xml;base64,' + b64;
   const img = new Image();

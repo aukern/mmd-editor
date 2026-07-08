@@ -1,5 +1,5 @@
 import { S } from '../state.js';
-import { getMermaidText } from '../render.js';
+import { getMermaidText, getCurrentSource } from '../render.js';
 
 // ── Line diff (LCS) → unified-diff hunks ──────────────────────────────────────
 // Content-based, like git: identical content (e.g. after undo) yields no diff.
@@ -57,7 +57,7 @@ function baseline() {
 
 // Set the baseline to the current content (called when a diagram is loaded).
 export function resetDiffBaseline() {
-  S.diffCheckpoints = [getMermaidText()];
+  S.diffCheckpoints = [getCurrentSource()];
   cacheCur = cacheBase = null;
   updateDiffPanel();
 }
@@ -65,7 +65,7 @@ export function resetDiffBaseline() {
 export function updateDiffPanel() {
   const out = document.getElementById('diffOut');
   if (!out) return;
-  const cur = (S.lastMmd != null) ? S.lastMmd : getMermaidText();
+  const cur = S.viewMode ? (S.rawText || '') : ((S.lastMmd != null) ? S.lastMmd : getMermaidText());
   if (!S.diffCheckpoints || !S.diffCheckpoints.length) S.diffCheckpoints = [cur];
   const base = baseline();
   if (cur === cacheCur && base === cacheBase) return;         // nothing changed
@@ -105,7 +105,7 @@ function copyForAI() {
   if (!lastDiffText) { document.getElementById('diffStatus').textContent = 'Nothing to copy — no changes since checkpoint.'; return; }
   const payload = '# Change to a Mermaid flowchart (unified diff; `-` = before edit, `+` = after edit):\n\n' + lastDiffText;
   navigator.clipboard.writeText(payload).catch(() => {});
-  S.diffCheckpoints.push(getMermaidText());                   // advance baseline to now
+  S.diffCheckpoints.push(getCurrentSource());                 // advance baseline to now
   cacheCur = cacheBase = null;
   updateDiffPanel();
   if (status) status.textContent = 'Diff copied — checkpoint advanced.';

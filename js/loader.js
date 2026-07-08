@@ -4,6 +4,7 @@ import { parseMermaid } from './parser.js';
 import { layoutFromGraph, fitGroupsToMembers } from './layout.js';
 import { extractSnapshotsFromText, stripSnapLines } from './history.js';
 import { render, updateUndoRedo } from './render.js';
+import { detectDiagramType, enterViewMode, exitViewMode } from './viewmode.js';
 
 function parseTr(attr) {
   if (!attr) return { x: 0, y: 0 };
@@ -81,6 +82,13 @@ export function loadFromMermaidText(text, preserveSnapshots) {
       if (loaded.length) S.snapshots = loaded;
     }
     text = stripSnapLines(text);
+    // Non-flowchart diagrams open in view mode (live Mermaid render, edit as text).
+    if (detectDiagramType(text) !== 'flowchart') {
+      enterViewMode(text);
+      document.getElementById('statusText').textContent = `Loaded ${detectDiagramType(text)} — view mode (edit via source).`;
+      return;
+    }
+    exitViewMode();
     const { newNodes, newEdges, newGroups, newClassDefs, dir } = parseMermaid(text);
     const ids = [...newNodes.keys()];
     if (!ids.length) {

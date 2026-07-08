@@ -1,6 +1,6 @@
 import { S } from './state.js';
 import { applyTransform, pushUndo, cloneState, fitAll, setZoom, svgPoint, nodeSize, uid } from './utils.js';
-import { render, updateUndoRedo, updateMermaidOutput, getMermaidText } from './render.js';
+import { render, updateUndoRedo, updateMermaidOutput, getMermaidText, getCurrentSource } from './render.js';
 import { loadFromMermaidText } from './loader.js';
 import { takeSnapshot, scheduleSnapshot, countMutation, buildFileContent, refreshHistoryPanel, initHistoryPanel } from './history.js';
 import { scheduleSave, doAutoSave, startFileWatcher, stopFileWatcher, serverMtime, updateSaveStatus, initFilenameRename } from './file.js';
@@ -12,11 +12,12 @@ import { initModal } from './ui/modal.js';
 import { buildMenuBar, buildExportDropdown } from './ui/menu.js';
 import { initSourceEditor } from './ui/source.js';
 import { initDiffPanel } from './ui/diff.js';
+import { enterViewMode, exitViewMode, renderViewDiagram, fitViewDiagram, detectDiagramType } from './viewmode.js';
 import { autoArrange } from './layout.js';
 
 // ── Expose globals so cross-module callbacks work without circular imports ─────
 window._editorUtils = { pushUndo, cloneState, fitAll, setZoom, applyTransform, svgPoint, nodeSize };
-window._editorRender = { render, updateMermaidOutput, getMermaidText };
+window._editorRender = { render, updateMermaidOutput, getMermaidText, getCurrentSource };
 window._editorInline = { activateInline, scheduleSnapshot };
 window._editorMutations = { addEdge, takeSnapshot, addNode, deleteSelected, copySelection, pasteClipboard, duplicateSelection };
 window._editorFile = { scheduleSave, doAutoSave, startFileWatcher, stopFileWatcher, serverMtime, updateSaveStatus };
@@ -25,6 +26,7 @@ window._editorHistory = { refreshHistoryPanel, takeSnapshot, buildFileContent, c
 window._editorTabs = { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab, loadIntoCurrentTab, syncModal };
 window._editorPortHandlers = { onPortMousedown: getPortMousedownHandler() };
 window._editorEvents = { spawnConnectGhost };
+window._editorViewmode = { enterViewMode, exitViewMode, renderViewDiagram, fitViewDiagram, detectDiagramType };
 
 // Collapsible sidebar sections. Clicking a section header toggles it; clicks on
 // interactive controls inside a header (e.g. the Expand button) are ignored.

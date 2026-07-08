@@ -197,7 +197,7 @@ export function initCanvasEvents() {
   canvasWrap.addEventListener('mousedown', ev => {
     // Middle button always pans. Left button pans when Pan mode is on; Ctrl
     // inverts the current mode (so you can always get the other action too).
-    const wantPan = ev.button===1 || (ev.button===0 && (ev.ctrlKey !== S.panMode));
+    const wantPan = ev.button===1 || (ev.button===0 && (S.viewMode || (ev.ctrlKey !== S.panMode)));
     if (wantPan) {
       ev.preventDefault();
       S.isPanning=true; S.panStartX=ev.clientX; S.panStartY=ev.clientY; S.panOriginX=S.panX; S.panOriginY=S.panY;
@@ -479,6 +479,11 @@ export function initKeyboard() {
         if (applyTransform) applyTransform();
         document.getElementById('statusText').textContent = 'Preview cancelled.';
       }
+      return;
+    }
+    // View mode: canvas isn't editable — block editing shortcuts, keep Ctrl+S (snapshot).
+    if (S.viewMode) {
+      if ((ev.ctrlKey||ev.metaKey) && ev.key==='s') { ev.preventDefault(); takeSnapshot('Manual'); doAutoSave(); document.getElementById('statusText').textContent='Snapshot saved.'; }
       return;
     }
     if (ev.key==='Delete'||ev.key==='Backspace') { ev.preventDefault(); deleteSelected(); }

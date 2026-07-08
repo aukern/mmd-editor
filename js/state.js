@@ -31,6 +31,8 @@ export const S = {
   sourceLineMap: null,
   lastMmd: null,
   diffCheckpoints: null,
+  viewMode: false,
+  rawText: '',
 };
 
 export function resetS() {

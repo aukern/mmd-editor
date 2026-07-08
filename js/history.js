@@ -6,8 +6,8 @@ export function decodeSnap(b) { try { return JSON.parse(decodeURIComponent(escap
 export function takeSnapshot(label) {
   if (S.previewMode) return;
   clearTimeout(S.snapshotTimer); S.pendingSnapshotLabel = null;
-  const { getMermaidText } = window._editorRender || {};
-  const mmd = getMermaidText ? getMermaidText() : (document.getElementById('mmdOut')?.value || '');
+  const { getCurrentSource } = window._editorRender || {};
+  const mmd = getCurrentSource ? getCurrentSource() : (document.getElementById('mmdOut')?.value || '');
   if (!mmd || !mmd.trim()) return;
   // Skip duplicate: if content identical to last snapshot, just update its label/ts instead of adding
   if (S.snapshots.length > 0 && S.snapshots[S.snapshots.length - 1].mmd === mmd) return;
@@ -57,8 +57,8 @@ export function stripSnapLines(text) {
 
 export function buildFileContent() {
   const snapLines = S.snapshots.map(s => `%% snap:${encodeSnap(s)}`).join('\n');
-  const { getMermaidText } = window._editorRender || {};
-  const diag = getMermaidText ? getMermaidText() : (document.getElementById('mmdOut')?.value || '');
+  const { getCurrentSource } = window._editorRender || {};
+  const diag = getCurrentSource ? getCurrentSource() : (document.getElementById('mmdOut')?.value || '');
   return snapLines ? (snapLines + '\n' + diag) : diag;
 }
 
@@ -95,6 +95,7 @@ export function refreshHistoryPanel() {
           classDefs: JSON.parse(JSON.stringify(S.classDefs)),
           direction: S.direction,
           zoom: S.zoom, panX: S.panX, panY: S.panY,
+          viewMode: S.viewMode, rawText: S.rawText,
         };
         S.previewMode = true;
         document.getElementById('canvasWrap').classList.add('preview-mode');
@@ -121,6 +122,10 @@ function exitPreview(accept) {
     S.zoom = saved.zoom; S.panX = saved.panX; S.panY = saved.panY;
     const dirSel = document.getElementById('directionSelect');
     if (dirSel) dirSel.value = S.direction;
+    // Restore the canvas mode (view-only Mermaid vs editor) active before preview.
+    const { enterViewMode, exitViewMode } = window._editorViewmode || {};
+    if (saved.viewMode) { if (enterViewMode) enterViewMode(saved.rawText || ''); }
+    else { if (exitViewMode) exitViewMode(); }
   }
   S.previewSaved = null;
   S.selected = null; S.multiSelect.clear(); S.multiSelectEdges.clear();

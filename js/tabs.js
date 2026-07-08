@@ -1,4 +1,5 @@
 import { S } from './state.js';
+import { enterViewMode, exitViewMode } from './viewmode.js';
 
 function serializeTab() {
   return {
@@ -18,6 +19,8 @@ function serializeTab() {
     multiSelect: [...S.multiSelect],
     multiSelectEdges: [...S.multiSelectEdges],
     diffCheckpoints: S.diffCheckpoints ? [...S.diffCheckpoints] : null,
+    viewMode: S.viewMode,
+    rawText: S.rawText,
   };
 }
 
@@ -65,6 +68,8 @@ export function restoreTabState(tab) {
     if (stopFileWatcher) stopFileWatcher();
   }
   syncModal();
+  // Restore the canvas mode for this tab (view-only Mermaid render vs editor).
+  if (tab.viewMode) enterViewMode(tab.rawText || ''); else exitViewMode();
   const { applyTransform } = window._editorUtils || {};
   if (applyTransform) applyTransform();
 }

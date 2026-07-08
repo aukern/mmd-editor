@@ -14,6 +14,9 @@ export function applyTransform() {
   document.getElementById('root').setAttribute('transform', `translate(${S.panX},${S.panY}) scale(${S.zoom})`);
   document.getElementById('zoomLabel').textContent = Math.round(S.zoom * 100) + '%';
   // Grid rect lives inside #root — it gets the same transform automatically, no extra work needed.
+  // In view mode the same pan/zoom drives the Mermaid-rendered SVG.
+  const vp = document.getElementById('viewPan');
+  if (vp) vp.style.transform = `translate(${S.panX}px,${S.panY}px) scale(${S.zoom})`;
 }
 
 export function setZoom(z, cx, cy) {
@@ -28,6 +31,7 @@ export function setZoom(z, cx, cy) {
 }
 
 export function fitAll() {
+  if (S.viewMode) { window._editorViewmode?.fitViewDiagram?.(); return; }
   if (!S.nodes.length && !S.groups.length) { S.zoom = 1; S.panX = 80; S.panY = 80; applyTransform(); return; }
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   S.nodes.forEach(n => { const {w,h} = nodeSize(n); minX = Math.min(minX, n.x-w/2); minY = Math.min(minY, n.y-h/2); maxX = Math.max(maxX, n.x+w/2); maxY = Math.max(maxY, n.y+h/2); });
