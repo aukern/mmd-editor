@@ -5,7 +5,7 @@ import { loadFromMermaidText } from './loader.js';
 import { takeSnapshot, scheduleSnapshot, countMutation, buildFileContent, refreshHistoryPanel, initHistoryPanel } from './history.js';
 import { scheduleSave, doAutoSave, startFileWatcher, stopFileWatcher, serverMtime, updateSaveStatus, initFilenameRename } from './file.js';
 import { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab, loadIntoCurrentTab, syncModal } from './tabs.js';
-import { initCanvasEvents, initToolbar, initKeyboard, addNode, addGroup, addEdge, deleteSelected, copySelection, pasteClipboard, duplicateSelection, getPortMousedownHandler, spawnConnectGhost } from './events.js';
+import { initCanvasEvents, initToolbar, initKeyboard, addNode, addGroup, addEdge, deleteSelected, copySelection, pasteClipboard, duplicateSelection, getPortMousedownHandler, spawnConnectGhost, updateCanvasCursor } from './events.js';
 import { initInline, activateInline, cancelInline } from './ui/inline.js';
 import { buildShapeDropdown, setCurrentShape } from './ui/shapeDropdown.js';
 import { initModal } from './ui/modal.js';
@@ -25,7 +25,7 @@ window._editorLoad = { loadFromMermaidText };
 window._editorHistory = { refreshHistoryPanel, takeSnapshot, buildFileContent, countMutation };
 window._editorTabs = { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab, loadIntoCurrentTab, syncModal };
 window._editorPortHandlers = { onPortMousedown: getPortMousedownHandler() };
-window._editorEvents = { spawnConnectGhost };
+window._editorEvents = { spawnConnectGhost, updateCanvasCursor };
 window._editorViewmode = { enterViewMode, exitViewMode, renderViewDiagram, fitViewDiagram, detectDiagramType };
 
 // Collapsible sidebar sections. Clicking a section header toggles it; clicks on

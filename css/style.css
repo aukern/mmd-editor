@@ -44,10 +44,7 @@ button:disabled{opacity:.35;cursor:default;}
 /* ── Main area ── */
 #main{flex:1;display:flex;min-height:0;}
 #canvasWrap{flex:1;position:relative;overflow:hidden;cursor:default;background-color:var(--bg);}
-#canvasWrap.pan-cursor{cursor:grabbing !important;}
-/* Grab cursor when pan is the active action: Ctrl in normal mode, or no Ctrl in pan mode. */
-#canvasWrap.ctrl-hover:not(.pan-mode){cursor:grab;}
-#canvasWrap.pan-mode:not(.ctrl-hover):not(.pan-cursor){cursor:grab;}
+/* Canvas cursor is set from state in JS (events.js updateCanvasCursor). */
 svg#canvas{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;}
 /* View-only render layer (non-flowchart diagrams) */
 #viewLayer{position:absolute;inset:0;display:none;overflow:hidden;z-index:60;background:var(--bg);cursor:grab;}
@@ -91,7 +88,7 @@ svg#canvas{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visibl
 input[type=text]{background:#1e1f27;color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px 7px;font-size:12px;width:100%;}
 input[type=color]{width:28px;height:26px;padding:2px;border-radius:5px;border:1px solid var(--border);background:#2e2f38;cursor:pointer;}
 textarea{width:100%;background:#16171c;color:#b8e0b8;border:1px solid var(--border);border-radius:5px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11px;padding:8px;resize:none;}
-#mmdOut{min-height:160px;line-height:16px;white-space:pre;overflow:auto;position:relative;z-index:1;background:transparent;}
+#mmdOut{min-height:160px;height:200px;line-height:16px;white-space:pre;overflow:auto;position:relative;z-index:1;background:transparent;resize:vertical;}
 #mmdOutWrap{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:5px;background:#16171c;}
 #mmdOutWrap textarea{border:none;border-radius:0;}
 #mmdOutHiBar{position:absolute;left:0;right:0;display:none;pointer-events:none;background:rgba(108,140,255,0.22);border-left:2px solid var(--accent);z-index:0;}
@@ -192,5 +189,7 @@ textarea{width:100%;background:#16171c;color:#b8e0b8;border:1px solid var(--bord
 .source-modal-card{display:flex;flex-direction:column;width:min(900px,92vw);height:min(80vh,760px);background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 48px rgba(0,0,0,.6);overflow:hidden;}
 .source-modal-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
 .source-modal-header button{font-size:11px;padding:4px 10px;}
-#mmdOutBig{flex:1;border:none;border-radius:0;font-size:13px;line-height:1.5;padding:14px;resize:none;}
+#mmdBigWrap{flex:1;position:relative;overflow:hidden;background:#16171c;}
+#mmdOutBig{position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:0;font-size:13px;line-height:20px;white-space:pre;overflow:auto;padding:14px;resize:none;background:transparent;z-index:1;}
 #mmdOutBig:focus{outline:none;}
+#mmdBigHiBar{position:absolute;left:0;right:0;display:none;pointer-events:none;background:rgba(108,140,255,0.22);border-left:2px solid var(--accent);z-index:0;}

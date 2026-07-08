@@ -173,12 +173,25 @@ function refreshHoverPorts() {
   else renderPorts(S.hoveredNodeId, { onPortMousedown: handlePortMousedown });
 }
 
+// ── Canvas cursor: grab when pan is the active action, else default. Driven from
+// state so it can never desync (Ctrl inverts the active mode; view mode = pan). ─
+let _ctrlDown = false;
+export function updateCanvasCursor() {
+  const cw = document.getElementById('canvasWrap');
+  if (!cw) return;
+  if (S.isPanning) { cw.style.cursor = 'grabbing'; return; }
+  if (S.viewMode) { cw.style.cursor = ''; return; }   // #viewLayer handles its own cursor
+  const panActive = (!!S.panMode) !== _ctrlDown;
+  cw.style.cursor = panActive ? 'grab' : 'default';
+}
+
 // ── Canvas mouse events ───────────────────────────────────────────────────────
 export function initCanvasEvents() {
   const canvasWrap = document.getElementById('canvasWrap');
 
-  window.addEventListener('keydown', ev => { if(ev.key==='Control')canvasWrap.classList.add('ctrl-hover'); });
-  window.addEventListener('keyup', ev => { if(ev.key==='Control')canvasWrap.classList.remove('ctrl-hover'); });
+  window.addEventListener('keydown', ev => { if(ev.key==='Control'){ _ctrlDown=true; updateCanvasCursor(); } });
+  window.addEventListener('keyup', ev => { if(ev.key==='Control'){ _ctrlDown=false; updateCanvasCursor(); } });
+  window.addEventListener('blur', () => { _ctrlDown=false; updateCanvasCursor(); });
 
   canvasWrap.addEventListener('wheel', ev => {
     // Scroll-to-zoom follows the same mode/Ctrl rule as drag-to-pan, so Pan mode
@@ -201,7 +214,7 @@ export function initCanvasEvents() {
     if (wantPan) {
       ev.preventDefault();
       S.isPanning=true; S.panStartX=ev.clientX; S.panStartY=ev.clientY; S.panOriginX=S.panX; S.panOriginY=S.panY;
-      canvasWrap.classList.add('pan-cursor'); return;
+      canvasWrap.classList.add('pan-cursor'); updateCanvasCursor(); return;
     }
     if (ev.button===0) {
       if (S.connectMode) {
@@ -277,7 +290,7 @@ export function initCanvasEvents() {
 
   window.addEventListener('mouseup', ev => {
     if (S.isPanning) {
-      S.isPanning=false; document.getElementById('canvasWrap').classList.remove('pan-cursor');
+      S.isPanning=false; document.getElementById('canvasWrap').classList.remove('pan-cursor'); updateCanvasCursor();
       // A pan that didn't move is really a click on empty canvas — clear selection.
       const moved = Math.hypot(ev.clientX - S.panStartX, ev.clientY - S.panStartY) > 4;
       if (!moved && (S.selected || S.multiSelect.size || S.multiSelectEdges.size)) {
@@ -356,7 +369,7 @@ export function initToolbar() {
   document.getElementById('panModeBtn').addEventListener('click', ev => {
     S.panMode = !S.panMode;
     ev.currentTarget.classList.toggle('active', S.panMode);
-    document.getElementById('canvasWrap').classList.toggle('pan-mode', S.panMode);
+    updateCanvasCursor();
     document.getElementById('statusText').textContent = S.panMode
       ? 'Pan mode: drag empty canvas to pan (Ctrl+drag to select).'
       : 'Select mode: drag empty canvas to select (Ctrl+drag to pan).';

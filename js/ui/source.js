@@ -103,6 +103,43 @@ function syncHighlight() {
   positionHighlightBar();
 }
 
+// ── Find-in-code for the expanded (modal) editor — its own highlight bar ───────
+const BIG_LINE_H = 20, BIG_PAD = 14;
+let bigMatches = [], bigIdx = 0, bigRange = null;
+
+function positionBigBar() {
+  const bar = document.getElementById('mmdBigHiBar'), ta = document.getElementById('mmdOutBig');
+  if (!bar || !ta) return;
+  if (!bigRange) { bar.style.display = 'none'; return; }
+  const [a, b] = bigRange;
+  bar.style.display = 'block';
+  bar.style.top = (BIG_PAD + a * BIG_LINE_H - ta.scrollTop) + 'px';
+  bar.style.height = ((b - a + 1) * BIG_LINE_H) + 'px';
+}
+
+function runBigSearch(scrollTo, reset) {
+  const ta = document.getElementById('mmdOutBig'), box = document.getElementById('mmdBigSearch'), info = document.getElementById('mmdBigSearchInfo');
+  if (!ta || !box) return;
+  const q = box.value.trim();
+  if (!q) { bigMatches = []; bigRange = null; if (info) info.textContent = ''; positionBigBar(); return; }
+  if (reset) bigIdx = 0;
+  const ql = q.toLowerCase();
+  bigMatches = [];
+  ta.value.split('\n').forEach((ln, i) => { if (ln.toLowerCase().includes(ql)) bigMatches.push(i); });
+  if (!bigMatches.length) { bigRange = null; if (info) info.textContent = '0/0'; positionBigBar(); return; }
+  if (bigIdx >= bigMatches.length) bigIdx = 0;
+  const line = bigMatches[bigIdx];
+  bigRange = [line, line];
+  if (info) info.textContent = `${bigIdx + 1}/${bigMatches.length}`;
+  if (scrollTo) {
+    const top = line * BIG_LINE_H, bottom = (line + 1) * BIG_LINE_H;
+    const vT = ta.scrollTop, vH = ta.clientHeight - BIG_PAD * 2;
+    if (top < vT) ta.scrollTop = top;
+    else if (bottom > vT + vH) ta.scrollTop = Math.min(bottom - vH, top);
+  }
+  positionBigBar();
+}
+
 export function initSourceEditor() {
   window._editorSource = { syncHighlight };
   const outEl = document.getElementById('mmdOut');
@@ -118,10 +155,28 @@ export function initSourceEditor() {
   const onInput = (srcEl, otherEl) => () => {
     if (otherEl && document.activeElement !== otherEl) otherEl.value = srcEl.value;
     scheduleApply(srcEl.value);
-    runSearch(false, false);   // keep find matches fresh as the code changes
+    runSearch(false, false);      // keep sidebar find matches fresh
+    runBigSearch(false, false);   // and the expanded-editor find
   };
   if (out) out.addEventListener('input', onInput(out, big));
   if (big) big.addEventListener('input', onInput(big, out));
+  if (big) big.addEventListener('scroll', positionBigBar);
+
+  // Find-in-code for the expanded editor.
+  const bigSearchBox = document.getElementById('mmdBigSearch');
+  if (bigSearchBox) {
+    bigSearchBox.addEventListener('input', () => runBigSearch(true, true));
+    bigSearchBox.addEventListener('keydown', ev => {
+      ev.stopPropagation();
+      if (ev.key === 'Enter' && bigMatches.length) {
+        ev.preventDefault();
+        bigIdx = (bigIdx + (ev.shiftKey ? -1 : 1) + bigMatches.length) % bigMatches.length;
+        runBigSearch(true, false);
+      } else if (ev.key === 'Escape') {
+        bigSearchBox.value = ''; runBigSearch(false, true); bigSearchBox.blur();
+      }
+    });
+  }
 
   // Find-in-code box: highlight matching source lines; Enter/Shift+Enter cycles.
   const searchBox = document.getElementById('mmdSearch');
@@ -143,6 +198,7 @@ export function initSourceEditor() {
     expandBtn.addEventListener('click', () => {
       big.value = out ? out.value : getMermaidText();
       modal.classList.add('open');
+      runBigSearch(false, true);   // refresh find highlight for the current content
       setTimeout(() => big.focus(), 0);
     });
   }

@@ -269,11 +269,13 @@
     <div class="source-modal-header">
       <span>Mermaid source (.mmd)</span>
       <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="mmdBigSearch" placeholder="🔍 Find… (Enter=next)" style="width:180px;text-transform:none;letter-spacing:normal;font-weight:400">
+        <span id="mmdBigSearchInfo" style="min-width:40px;text-align:right;color:var(--muted);font-weight:400">​</span>
         <button id="sourceModalCopy">Copy</button>
         <button id="sourceModalClose">✕ Close</button>
       </div>
     </div>
-    <textarea id="mmdOutBig" spellcheck="false"></textarea>
+    <div id="mmdBigWrap"><div id="mmdBigHiBar"></div><textarea id="mmdOutBig" spellcheck="false"></textarea></div>
   </div>
 </div>
 

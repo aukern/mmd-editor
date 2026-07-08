@@ -89,6 +89,7 @@ export function enterViewMode(text) {
   applyModeUI(true);
   const out = document.getElementById('mmdOut'); if (out) out.value = S.rawText;
   renderViewDiagram(S.rawText);
+  window._editorEvents?.updateCanvasCursor?.();
 }
 
 export function exitViewMode() {
@@ -98,4 +99,5 @@ export function exitViewMode() {
   document.getElementById('canvasWrap').classList.remove('view-mode');
   const pan = document.getElementById('viewPan'); if (pan) pan.innerHTML = '';
   if (wasView) applyModeUI(false);
+  window._editorEvents?.updateCanvasCursor?.();
 }
