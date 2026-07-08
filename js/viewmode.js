@@ -18,6 +18,14 @@ const LOCK_IDS = ['addNodeBtn', 'addGroupBtn', 'connectBtn', 'arrowSelect', 'dir
 
 function applyModeUI(on) {
   LOCK_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('vm-disabled', on); });
+  // Pan is the only navigation for view diagrams (rubber-band select is N/A), so
+  // force the Pan toggle on and lock it while in view mode.
+  const panBtn = document.getElementById('panModeBtn');
+  if (panBtn) {
+    panBtn.classList.toggle('vm-locked', on);
+    if (on) panBtn.classList.add('active');
+    else panBtn.classList.toggle('active', !!S.panMode);
+  }
   // Class-definitions section is flowchart-only — hide it.
   const cdSec = document.getElementById('cdAddBtn')?.closest('.sb-section');
   if (cdSec) cdSec.style.display = on ? 'none' : '';
