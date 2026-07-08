@@ -11,6 +11,7 @@ import { buildShapeDropdown, setCurrentShape } from './ui/shapeDropdown.js';
 import { initModal } from './ui/modal.js';
 import { buildMenuBar, buildExportDropdown } from './ui/menu.js';
 import { initSourceEditor } from './ui/source.js';
+import { initDiffPanel } from './ui/diff.js';
 import { autoArrange } from './layout.js';
 
 // ── Expose globals so cross-module callbacks work without circular imports ─────
@@ -24,6 +25,17 @@ window._editorHistory = { refreshHistoryPanel, takeSnapshot, buildFileContent, c
 window._editorTabs = { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab, loadIntoCurrentTab, syncModal };
 window._editorPortHandlers = { onPortMousedown: getPortMousedownHandler() };
 window._editorEvents = { spawnConnectGhost };
+
+// Collapsible sidebar sections. Clicking a section header toggles it; clicks on
+// interactive controls inside a header (e.g. the Expand button) are ignored.
+function initCollapsibleSidebar() {
+  document.querySelectorAll('#sidebar .sb-head').forEach(head => {
+    head.addEventListener('click', ev => {
+      if (ev.target.closest('button, input, select, textarea, a')) return;
+      head.parentElement.classList.toggle('collapsed');
+    });
+  });
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
@@ -39,6 +51,8 @@ function init() {
   initToolbar();
   initKeyboard();
   initSourceEditor();
+  initDiffPanel();
+  initCollapsibleSidebar();
 
   // Close shape/export dropdowns on outside click
   document.addEventListener('click', () => {

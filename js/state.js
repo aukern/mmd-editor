@@ -29,6 +29,8 @@ export const S = {
   previewSaved: null,
   mutationCount: 0,
   sourceLineMap: null,
+  lastMmd: null,
+  diffCheckpoints: null,
 };
 
 export function resetS() {

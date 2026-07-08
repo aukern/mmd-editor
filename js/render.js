@@ -182,6 +182,7 @@ export function updateMermaidOutput() {
   // The source panel is now editable — never clobber a textarea the user is
   // actively typing in. Keep both the sidebar and the expanded editor in sync.
   const txt = getMermaidText();
+  S.lastMmd = txt;
   const out = document.getElementById('mmdOut');
   if (out && document.activeElement !== out) out.value = txt;
   const big = document.getElementById('mmdOutBig');
@@ -190,19 +191,20 @@ export function updateMermaidOutput() {
 }
 
 export function updatePropsPanel() {
-  const propPanel = document.getElementById('propPanel');
+  // The Properties panel is now a persistent, collapsible section — its
+  // collapsed/expanded state is user-controlled, so we only update its contents
+  // here (never show/hide the whole section based on selection).
   const nodeProps = document.getElementById('nodeProps');
   const edgeProps = document.getElementById('edgeProps');
   const groupProps = document.getElementById('groupProps');
-  if (!propPanel || !nodeProps || !edgeProps || !groupProps) return;
-  if (!S.selected && S.multiSelect.size === 0) {
-    propPanel.classList.remove('visible'); nodeProps.style.display = 'none'; edgeProps.style.display = 'none'; groupProps.style.display = 'none'; return;
-  }
-  propPanel.classList.add('visible');
+  const noSel = document.getElementById('noSelMsg');
+  const propTitle = document.getElementById('propTitle');
+  if (!nodeProps || !edgeProps || !groupProps) return;
   nodeProps.style.display = 'none'; edgeProps.style.display = 'none'; groupProps.style.display = 'none';
+  if (noSel) noSel.style.display = 'none';
   if (S.selected && S.selected.type === 'node') {
     const n = S.nodes.find(x => x.id === S.selected.id); if (!n) return;
-    document.getElementById('propTitle').textContent = 'Node';
+    if (propTitle) propTitle.textContent = 'Node';
     nodeProps.style.display = 'block';
     document.getElementById('propNodeId').value = n.id;
     document.getElementById('propNodeLabel').value = n.label.replace(/\n/g, '\\n');
@@ -229,16 +231,18 @@ export function updatePropsPanel() {
     } else checks.style.display = 'none';
   } else if (S.selected && S.selected.type === 'edge') {
     const e = S.edges.find(x => x.id === S.selected.id); if (!e) return;
-    document.getElementById('propTitle').textContent = 'Edge'; edgeProps.style.display = 'block';
+    if (propTitle) propTitle.textContent = 'Edge'; edgeProps.style.display = 'block';
     document.getElementById('propEdgeType').value = e.type; document.getElementById('propEdgeLabel').value = e.label;
   } else if (S.selected && S.selected.type === 'group') {
     const g = S.groups.find(x => x.id === S.selected.id); if (!g) return;
-    document.getElementById('propTitle').textContent = 'Group'; groupProps.style.display = 'block';
+    if (propTitle) propTitle.textContent = 'Group'; groupProps.style.display = 'block';
     document.getElementById('propGroupTitle').value = g.title; document.getElementById('propGroupDir').value = g.direction || '';
   } else if (S.multiSelect.size > 0) {
-    document.getElementById('propTitle').textContent = `${S.multiSelect.size} nodes selected`;
-    nodeProps.style.display = 'none';
-    propPanel.classList.add('visible');
+    if (propTitle) propTitle.textContent = 'Properties';
+    if (noSel) { noSel.style.display = 'block'; noSel.textContent = `${S.multiSelect.size} nodes selected.`; }
+  } else {
+    if (propTitle) propTitle.textContent = 'Properties';
+    if (noSel) { noSel.style.display = 'block'; noSel.textContent = 'No selection.'; }
   }
 }
 
@@ -474,4 +478,5 @@ export function render() {
   updateUndoRedo();
   applyTransform();
   if (window._editorSource && window._editorSource.syncHighlight) window._editorSource.syncHighlight();
+  if (window._editorDiff && window._editorDiff.update) window._editorDiff.update();
 }

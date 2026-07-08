@@ -41,6 +41,12 @@ export function initInline() {
   if (inlineInput && canvasWrap && inlineInput.parentNode !== canvasWrap) {
     canvasWrap.appendChild(inlineInput);
   }
+  // Keep clicks inside the editor from reaching the canvas handlers — otherwise
+  // (e.g. in pan mode) the canvas mousedown calls preventDefault and the browser
+  // can't place the caret, so clicking to reposition the cursor does nothing.
+  ['mousedown', 'mouseup', 'click', 'dblclick'].forEach(evt =>
+    inlineInput.addEventListener(evt, ev => ev.stopPropagation())
+  );
   inlineInput.addEventListener('keydown', ev => {
     ev.stopPropagation();
     if (ev.key === 'Enter' && (ev.shiftKey || ev.altKey)) {

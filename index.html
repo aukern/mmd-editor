@@ -143,97 +143,116 @@
   </div>
 
   <div id="sidebar">
-    <div id="propPanel" class="sb-section">
-      <h2 id="propTitle">Properties</h2>
-      <div id="nodeProps" style="display:none">
-        <div class="sb-row tight"><label>ID</label><input type="text" id="propNodeId"></div>
-        <div class="sb-row tight"><label>Label</label><input type="text" id="propNodeLabel"></div>
-        <div class="sb-row tight"><label>Shape</label>
-          <select id="propShapeSelect" style="flex:1">
-            <option value="rect">Rectangle</option><option value="rounded">Rounded</option>
-            <option value="stadium">Stadium</option><option value="subroutine">Subroutine</option>
-            <option value="cylinder">Cylinder</option><option value="circle">Circle</option>
-            <option value="doubleCircle">Double circle</option><option value="asymmetric">Asymmetric</option>
-            <option value="rhombus">Rhombus</option><option value="hexagon">Hexagon</option>
-            <option value="parallelogram">Parallelogram</option><option value="parallelogramAlt">Parallelogram alt</option>
-            <option value="trapezoid">Trapezoid</option><option value="trapezoidAlt">Trapezoid alt</option>
-            <option value="delay">Delay</option><option value="manualInput">Manual input</option>
-            <option value="doc">Document</option><option value="display">Display</option>
-            <option value="hourglass">Hourglass</option>
-          </select>
-        </div>
+    <div class="sb-section">
+      <div class="sb-head"><span class="sb-title">Class definitions</span></div>
+      <div class="sb-body">
+        <div id="classDefList" style="margin-bottom:8px"></div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Add classDef</div>
+        <div class="sb-row tight"><label>Name</label><input type="text" id="cdName" placeholder="e.g. myClass"></div>
         <div class="sb-row tight">
-          <label>Fill</label><input type="color" id="propFill">
-          <label style="margin-left:4px">Stroke</label><input type="color" id="propStroke">
-          <label style="margin-left:4px">Text</label><input type="color" id="propTextColor">
+          <label>Fill</label><input type="color" id="cdFill" value="#2d5a2d">
+          <label style="margin-left:4px">Stroke</label><input type="color" id="cdStroke" value="#4caf50">
+          <label style="margin-left:4px">Text</label><input type="color" id="cdText" value="#e6e6ea">
         </div>
-        <div class="sb-row tight" style="margin-top:3px"><button id="propClearStyle" style="flex:1;font-size:11px;padding:3px">Clear style</button></div>
-        <div id="classChecks" style="margin-top:6px;display:none">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Classes</div>
-          <div id="classCheckList"></div>
-        </div>
-      </div>
-      <div id="edgeProps" style="display:none">
-        <div class="sb-row tight"><label>Type</label>
-          <select id="propEdgeType" style="flex:1">
-            <option value="arrow">──▶ Arrow</option><option value="line">─── Line</option>
-            <option value="dotted-arrow">┄┄▶ Dotted</option><option value="dotted-line">┄┄┄ Dotted line</option>
-            <option value="thick-arrow">══▶ Thick</option><option value="thick-line">═══ Thick line</option>
-            <option value="circle-arrow">──○ Circle</option><option value="cross-arrow">──✕ Cross</option>
-            <option value="bidirectional">◀─▶ Bidir</option><option value="circle-both">○──○</option>
-            <option value="cross-both">✕──✕</option><option value="thick-bidir">◀═▶ Thick bidir</option>
-            <option value="dotted-bidir">◀┄▶ Dotted bidir</option>
-          </select>
-        </div>
-        <div class="sb-row tight"><label>Label</label><input type="text" id="propEdgeLabel"></div>
-      </div>
-      <div id="groupProps" style="display:none">
-        <div class="sb-row tight"><label>Title</label><input type="text" id="propGroupTitle"></div>
-        <div class="sb-row tight"><label>Direction</label>
-          <select id="propGroupDir" style="flex:1">
-            <option value="">inherit</option><option value="TD">TD</option>
-            <option value="LR">LR</option><option value="BT">BT</option><option value="RL">RL</option>
-          </select>
-        </div>
+        <button id="cdAddBtn" style="width:100%;margin-top:4px;font-size:11px">Add class</button>
       </div>
     </div>
 
     <div class="sb-section">
-      <h2>Class definitions</h2>
-      <div id="classDefList" style="margin-bottom:8px"></div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Add classDef</div>
-      <div class="sb-row tight"><label>Name</label><input type="text" id="cdName" placeholder="e.g. myClass"></div>
-      <div class="sb-row tight">
-        <label>Fill</label><input type="color" id="cdFill" value="#2d5a2d">
-        <label style="margin-left:4px">Stroke</label><input type="color" id="cdStroke" value="#4caf50">
-        <label style="margin-left:4px">Text</label><input type="color" id="cdText" value="#e6e6ea">
+      <div class="sb-head"><span class="sb-title">Mermaid source (.mmd)</span><button id="expandSourceBtn" title="Expand editor" style="margin-left:auto;font-size:11px;padding:2px 7px">⤢ Expand</button></div>
+      <div class="sb-body">
+        <div id="mmdOutWrap"><div id="mmdOutHiBar"></div><textarea id="mmdOut" spellcheck="false" placeholder="flowchart TD&#10;    A[Start] --> B{Decision}"></textarea></div>
+        <div class="btn-row" style="margin-top:6px"><button id="copyBtn">Copy</button></div>
+        <p class="hint" style="margin-top:2px">Editable — changes apply live and are undoable.</p>
       </div>
-      <button id="cdAddBtn" style="width:100%;margin-top:4px;font-size:11px">Add class</button>
     </div>
 
-    <div class="sb-section" style="flex:1;display:flex;flex-direction:column;gap:6px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-        <h2 style="margin:0">Mermaid source (.mmd)</h2>
-        <button id="expandSourceBtn" title="Expand editor" style="font-size:11px;padding:2px 7px">⤢ Expand</button>
+    <div class="sb-section" id="diffPanel">
+      <div class="sb-head"><span class="sb-title">Changes since checkpoint (diff)</span></div>
+      <div class="sb-body">
+        <pre id="diffOut" class="diff-out"></pre>
+        <div class="btn-row" style="margin-top:6px">
+          <button id="diffCopyBtn" title="Copy the diff and advance the checkpoint to now">Copy for AI</button>
+          <button id="diffUndoBtn" title="Revert to the previous checkpoint (undo a copy)">↩ Undo checkpoint</button>
+        </div>
+        <div id="diffStatus" class="hint" style="margin-top:2px"></div>
       </div>
-      <div id="mmdOutWrap"><div id="mmdOutHiBar"></div><textarea id="mmdOut" spellcheck="false" placeholder="flowchart TD&#10;    A[Start] --> B{Decision}"></textarea></div>
-      <div class="btn-row">
-        <button id="copyBtn">Copy</button>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-head"><span class="sb-title">Load / paste Mermaid</span></div>
+      <div class="sb-body">
+        <textarea id="mmdIn" placeholder="flowchart LR&#10;    A[Start] --> B{Decision}"></textarea>
+        <div class="btn-row" style="margin-top:6px">
+          <button id="loadBtn">Load</button>
+          <button id="uploadBtn">Open .mmd</button>
+        </div>
+        <input type="file" id="fileInput" accept=".mmd,.txt" style="display:none">
+        <p class="hint">
+          <b>Drag from node edge</b> to create arrows. <b>Double-click</b> nodes/edges to rename inline.<br>
+          <b>Ctrl+scroll</b>=zoom · <b>Ctrl+drag</b>=pan · <b>Drag empty</b>=rubber-band select<br>
+          <b>Shift+click</b>=add to selection · <b>Ctrl+C/V</b>=copy/paste · <b>Ctrl+D</b>=duplicate<br>
+          <b>Del</b>=delete · <b>C</b>=connect mode · <b>Ctrl+Z/Y</b>=undo/redo · <b>Alt+drag</b>=snap
+        </p>
       </div>
-      <p class="hint" style="margin-top:2px">Editable — changes apply live and are undoable.</p>
-      <h2 style="margin-top:6px">Load / paste Mermaid</h2>
-      <textarea id="mmdIn" placeholder="flowchart LR&#10;    A[Start] --> B{Decision}"></textarea>
-      <div class="btn-row">
-        <button id="loadBtn">Load</button>
-        <button id="uploadBtn">Open .mmd</button>
+    </div>
+
+    <div id="propPanel" class="sb-section collapsed">
+      <div class="sb-head"><span class="sb-title" id="propTitle">Properties</span></div>
+      <div class="sb-body">
+        <div id="noSelMsg" style="font-size:11px;color:var(--muted)">No selection.</div>
+        <div id="nodeProps" style="display:none">
+          <div class="sb-row tight"><label>ID</label><input type="text" id="propNodeId"></div>
+          <div class="sb-row tight"><label>Label</label><input type="text" id="propNodeLabel"></div>
+          <div class="sb-row tight"><label>Shape</label>
+            <select id="propShapeSelect" style="flex:1">
+              <option value="rect">Rectangle</option><option value="rounded">Rounded</option>
+              <option value="stadium">Stadium</option><option value="subroutine">Subroutine</option>
+              <option value="cylinder">Cylinder</option><option value="circle">Circle</option>
+              <option value="doubleCircle">Double circle</option><option value="asymmetric">Asymmetric</option>
+              <option value="rhombus">Rhombus</option><option value="hexagon">Hexagon</option>
+              <option value="parallelogram">Parallelogram</option><option value="parallelogramAlt">Parallelogram alt</option>
+              <option value="trapezoid">Trapezoid</option><option value="trapezoidAlt">Trapezoid alt</option>
+              <option value="delay">Delay</option><option value="manualInput">Manual input</option>
+              <option value="doc">Document</option><option value="display">Display</option>
+              <option value="hourglass">Hourglass</option>
+            </select>
+          </div>
+          <div class="sb-row tight">
+            <label>Fill</label><input type="color" id="propFill">
+            <label style="margin-left:4px">Stroke</label><input type="color" id="propStroke">
+            <label style="margin-left:4px">Text</label><input type="color" id="propTextColor">
+          </div>
+          <div class="sb-row tight" style="margin-top:3px"><button id="propClearStyle" style="flex:1;font-size:11px;padding:3px">Clear style</button></div>
+          <div id="classChecks" style="margin-top:6px;display:none">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Classes</div>
+            <div id="classCheckList"></div>
+          </div>
+        </div>
+        <div id="edgeProps" style="display:none">
+          <div class="sb-row tight"><label>Type</label>
+            <select id="propEdgeType" style="flex:1">
+              <option value="arrow">──▶ Arrow</option><option value="line">─── Line</option>
+              <option value="dotted-arrow">┄┄▶ Dotted</option><option value="dotted-line">┄┄┄ Dotted line</option>
+              <option value="thick-arrow">══▶ Thick</option><option value="thick-line">═══ Thick line</option>
+              <option value="circle-arrow">──○ Circle</option><option value="cross-arrow">──✕ Cross</option>
+              <option value="bidirectional">◀─▶ Bidir</option><option value="circle-both">○──○</option>
+              <option value="cross-both">✕──✕</option><option value="thick-bidir">◀═▶ Thick bidir</option>
+              <option value="dotted-bidir">◀┄▶ Dotted bidir</option>
+            </select>
+          </div>
+          <div class="sb-row tight"><label>Label</label><input type="text" id="propEdgeLabel"></div>
+        </div>
+        <div id="groupProps" style="display:none">
+          <div class="sb-row tight"><label>Title</label><input type="text" id="propGroupTitle"></div>
+          <div class="sb-row tight"><label>Direction</label>
+            <select id="propGroupDir" style="flex:1">
+              <option value="">inherit</option><option value="TD">TD</option>
+              <option value="LR">LR</option><option value="BT">BT</option><option value="RL">RL</option>
+            </select>
+          </div>
+        </div>
       </div>
-      <input type="file" id="fileInput" accept=".mmd,.txt" style="display:none">
-      <p class="hint">
-        <b>Drag from node edge</b> to create arrows. <b>Double-click</b> nodes/edges to rename inline.<br>
-        <b>Ctrl+scroll</b>=zoom · <b>Ctrl+drag</b>=pan · <b>Drag empty</b>=rubber-band select<br>
-        <b>Shift+click</b>=add to selection · <b>Ctrl+C/V</b>=copy/paste · <b>Ctrl+D</b>=duplicate<br>
-        <b>Del</b>=delete · <b>C</b>=connect mode · <b>Ctrl+Z/Y</b>=undo/redo · <b>Alt+drag</b>=snap
-      </p>
     </div>
   </div>
 </div>

@@ -17,6 +17,7 @@ function serializeTab() {
     snapAlways: S.snapAlways,
     multiSelect: [...S.multiSelect],
     multiSelectEdges: [...S.multiSelectEdges],
+    diffCheckpoints: S.diffCheckpoints ? [...S.diffCheckpoints] : null,
   };
 }
 
@@ -49,6 +50,7 @@ export function restoreTabState(tab) {
   S.snapAlways = tab.snapAlways || false;
   S.multiSelect = new Set(tab.multiSelect || []);
   S.multiSelectEdges = new Set(tab.multiSelectEdges || []);
+  S.diffCheckpoints = tab.diffCheckpoints || null;
   // Update direction select
   const dirSel = document.getElementById('directionSelect');
   if (dirSel) dirSel.value = S.direction;
@@ -146,6 +148,8 @@ export function openInNewTab(filename, mmdText) {
   S.tabs[S.activeTabIdx].snapshots = S.snapshots;
   const { takeSnapshot } = window._editorHistory || {};
   if (takeSnapshot) takeSnapshot('Opened file');
+  const { resetBaseline } = window._editorDiff || {};
+  if (resetBaseline) resetBaseline();   // diff baseline = the file we just opened
   // Opening a file must NOT trigger autosave — the regenerated mermaid text may differ
   // from the original (parser lossy round-trip), which would silently corrupt the file.
   // Only user mutations should save.
@@ -205,6 +209,8 @@ export function loadIntoCurrentTab(filename, mmdText) {
 
   const { takeSnapshot } = window._editorHistory || {};
   if (takeSnapshot) takeSnapshot('Opened file');
+  const { resetBaseline } = window._editorDiff || {};
+  if (resetBaseline) resetBaseline();   // diff baseline = the file we just opened
   // Opening a file must NOT trigger autosave — cancel any save the snapshot scheduled.
   clearTimeout(S.saveTimer); S.saveTimer = null;
 
