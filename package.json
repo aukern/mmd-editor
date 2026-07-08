@@ -59,6 +59,9 @@
       "target": ["dmg"],
       "category": "public.app-category.graphics",
       "icon": "build/icon.png"
-    }
+    },
+    "publish": [
+      { "provider": "github", "owner": "aukern", "repo": "mmd-editor" }
+    ]
   }
 }
