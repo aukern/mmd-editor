@@ -32,17 +32,29 @@ function safePath(diagramsDir, name) {
 }
 
 // Recursively list *.mmd under diagramsDir, forward-slash relative paths, sorted.
+// Follows symlinked files and directories (so you can symlink files/folders from
+// anywhere into the diagrams folder), with cycle protection via realpath.
 function listMmd(diagramsDir) {
   const out = [];
+  const seen = new Set();
   const walk = (dir, rel) => {
+    let real;
+    try { real = fs.realpathSync(dir); } catch { return; }
+    if (seen.has(real)) return;               // guard against symlink cycles
+    seen.add(real);
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
     entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const e of entries) {
       const full = path.join(dir, e.name);
       const r = rel ? rel + '/' + e.name : e.name;
-      if (e.isDirectory()) walk(full, r);
-      else if (e.name.endsWith('.mmd')) out.push(r);
+      let isDir = e.isDirectory(), isFile = e.isFile();
+      if (e.isSymbolicLink()) {
+        try { const st = fs.statSync(full); isDir = st.isDirectory(); isFile = st.isFile(); }
+        catch { continue; }                   // broken/dangling symlink
+      }
+      if (isDir) walk(full, r);
+      else if (isFile && e.name.endsWith('.mmd')) out.push(r);
     }
   };
   walk(diagramsDir, '');
