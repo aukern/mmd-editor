@@ -57,7 +57,7 @@
       "allowToChangeInstallationDirectory": true
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [{ "target": "dmg", "arch": "universal" }],
       "category": "public.app-category.graphics",
       "icon": "build/icon.png"
     },
