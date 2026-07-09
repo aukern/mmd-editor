@@ -33,6 +33,7 @@ async function createWindow() {
     backgroundColor: '#1a1b20',
     autoHideMenuBar: true,
     title: 'MMD Editor',
+    icon: path.join(__dirname, '..', 'build', 'icon.png'),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
