@@ -465,6 +465,20 @@ export function initToolbar() {
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────────────
 export function initKeyboard() {
+  // Ctrl/Cmd +/-/0 zoom the CANVAS, not the whole page. Handled first (capture) so it
+  // works in every mode (editor / view / preview) and beats the browser's page zoom.
+  window.addEventListener('keydown', ev => {
+    if (!(ev.ctrlKey || ev.metaKey) || ev.altKey) return;
+    // '=' shares the key with '+'; NumpadAdd/Subtract map to Add/Subtract keys.
+    const zoomIn  = ev.key === '+' || ev.key === '=' || ev.code === 'NumpadAdd';
+    const zoomOut = ev.key === '-' || ev.key === '_' || ev.code === 'NumpadSubtract';
+    const reset   = ev.key === '0' || ev.code === 'Numpad0';
+    if (!zoomIn && !zoomOut && !reset) return;
+    ev.preventDefault();
+    if (reset) fitAll();
+    else setZoom(S.zoom * (zoomIn ? 1.2 : 1/1.2));
+  }, true);
+
   window.addEventListener('keydown', ev => {
     const tag = document.activeElement.tagName;
     if (tag==='INPUT'||tag==='TEXTAREA') return;

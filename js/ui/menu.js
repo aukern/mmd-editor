@@ -80,9 +80,9 @@ export function buildMenuBar() {
     {
       id: 'menuView', label: 'View', panelId: 'menuViewPanel',
       entries: [
-        { label: 'Zoom In', shortcut: '+', action: () => { const { setZoom } = window._editorUtils||{}; if(setZoom)setZoom(S.zoom*1.2); }},
-        { label: 'Zoom Out', shortcut: '-', action: () => { const { setZoom } = window._editorUtils||{}; if(setZoom)setZoom(S.zoom/1.2); }},
-        { label: 'Fit', shortcut: 'F', action: () => { const { fitAll } = window._editorUtils||{}; if(fitAll)fitAll(); }},
+        { label: 'Zoom In', shortcut: 'Ctrl +', action: () => { const { setZoom } = window._editorUtils||{}; if(setZoom)setZoom(S.zoom*1.2); }},
+        { label: 'Zoom Out', shortcut: 'Ctrl -', action: () => { const { setZoom } = window._editorUtils||{}; if(setZoom)setZoom(S.zoom/1.2); }},
+        { label: 'Fit', shortcut: 'Ctrl 0', action: () => { const { fitAll } = window._editorUtils||{}; if(fitAll)fitAll(); }},
         { label: '-' },
         { label: 'Toggle Pan / Select Mode', action: () => { document.getElementById('panModeBtn').click(); }},
         { label: 'Toggle Grid Snap', action: () => {

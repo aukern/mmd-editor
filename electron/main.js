@@ -42,6 +42,12 @@ async function createWindow() {
   });
 
   mainWindow.loadURL(`http://127.0.0.1:${port}/index.html`);
+  // Keep page zoom pinned at 100% — Ctrl+/- and pinch zoom the canvas, not the app.
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.setZoomFactor(1);
+    mainWindow.webContents.setVisualZoomLevelLimits(1, 1);
+  });
+  mainWindow.webContents.on('zoom-changed', () => mainWindow.webContents.setZoomFactor(1));
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
@@ -58,10 +64,9 @@ function buildMenu() {
         { role: 'forceReload' },
         { role: 'toggleDevTools' },
         { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
+        // No zoomIn/zoomOut/resetZoom roles: their Ctrl+=/Ctrl+-/Ctrl+0 accelerators
+        // would zoom the whole page. Those shortcuts are handled in the renderer to
+        // zoom the canvas instead (see js/events.js).
         { role: 'togglefullscreen' },
       ],
     },
