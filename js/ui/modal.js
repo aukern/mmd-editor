@@ -136,6 +136,24 @@ export function initModal() {
   let cachedFiles = [];
   let isOpening = false;
 
+  // Reset the picker so it re-fetches fresh next time it's opened. Called whenever
+  // the startup modal (re)appears — otherwise the list shows whatever was rendered
+  // the first time, missing files added (or symlinked) while the app is open.
+  function resetFilePicker() {
+    cachedFiles = [];
+    isOpening = false;
+    const panel = document.getElementById('fileListPanel');
+    if (panel) { panel.style.display = 'none'; panel.innerHTML = ''; }
+    const search = document.getElementById('fileSearchInput');
+    if (search) { search.style.display = 'none'; search.value = ''; }
+    const row = document.getElementById('newFileRow');
+    if (row) row.style.display = 'none';
+    const noMatch = document.getElementById('fileNoMatch');
+    if (noMatch) noMatch.style.display = 'none';
+    showFileError('');
+  }
+  window._editorModal = { resetFilePicker };
+
   async function openFile(name, itemEl) {
     if (isOpening) return;
     isOpening = true;

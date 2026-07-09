@@ -45,6 +45,7 @@ export function buildMenuBar() {
         }},
         { label: 'Open File…', action: () => {
           document.getElementById('startupModal').style.display = 'flex';
+          if (window._editorModal && window._editorModal.resetFilePicker) window._editorModal.resetFilePicker();
           document.getElementById('modalOpenBtn').click();
         }},
         { label: 'Save Snapshot', shortcut: 'Ctrl+S', action: () => { takeSnapshot('Manual'); doAutoSave(); document.getElementById('statusText').textContent='Snapshot saved.'; }},

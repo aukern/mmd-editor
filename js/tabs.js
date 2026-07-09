@@ -35,6 +35,8 @@ export function syncModal() {
   if (!modal) return;
   const hasFile = S.activeTabIdx >= 0 && S.tabs[S.activeTabIdx] && S.tabs[S.activeTabIdx].filename;
   modal.style.display = hasFile ? 'none' : '';
+  // Modal is (re)appearing — reset the file picker so it re-fetches a fresh list.
+  if (!hasFile && window._editorModal && window._editorModal.resetFilePicker) window._editorModal.resetFilePicker();
 }
 
 export function restoreTabState(tab) {
