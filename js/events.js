@@ -46,7 +46,15 @@ export function deleteSelected() {
   if (!S.selected) return;
   pushUndo();
   if (S.selected.type === 'edge') { S.edges = S.edges.filter(e => e.id !== S.selected.id); }
-  else if (S.selected.type === 'group') { S.nodes.forEach(n => { if(n.parent===S.selected.id)n.parent=null; }); S.groups=S.groups.filter(g=>g.id!==S.selected.id); }
+  else if (S.selected.type === 'group') {
+    // Promote children (nodes AND nested groups) up to the deleted group's own parent,
+    // so nested groups aren't left pointing at a group that no longer exists.
+    const del = S.groups.find(g=>g.id===S.selected.id);
+    const up = del ? (del.parent||null) : null;
+    S.nodes.forEach(n => { if(n.parent===S.selected.id) n.parent=up; });
+    S.groups.forEach(g => { if(g.parent===S.selected.id) g.parent=up; });
+    S.groups = S.groups.filter(g=>g.id!==S.selected.id);
+  }
   S.selected = null; render(); countMutation();
 }
 
@@ -319,7 +327,26 @@ export function initCanvasEvents() {
       if (S.drag.moved) { scheduleSave(); }
       S.drag=null; render(); return;
     }
-    if (S.groupDrag) { S.groupDrag=null; render(); return; }
+    if (S.groupDrag) {
+      if (S.groupDrag.mode === 'move') {
+        const g = S.groups.find(x=>x.id===S.groupDrag.id);
+        if (g) {
+          // Reparent the group to the innermost group under its center (like nodes),
+          // excluding itself and its own descendants — a group can't nest in its child.
+          const banned = new Set([g.id]);
+          for (let changed=true; changed;) {
+            changed=false;
+            S.groups.forEach(x=>{ if(x.parent && banned.has(x.parent) && !banned.has(x.id)){ banned.add(x.id); changed=true; } });
+          }
+          const cx=g.x+g.w/2, cy=g.y+g.h/2;
+          const hits = S.groups.filter(o=> !banned.has(o.id) && cx>=o.x && cx<=o.x+o.w && cy>=o.y && cy<=o.y+o.h);
+          const hit = hits.length ? hits.reduce((a,b)=> (a.w*a.h<=b.w*b.h ? a : b)) : null;
+          const newParent = hit ? hit.id : null;
+          if ((g.parent||null) !== newParent) { g.parent = newParent; scheduleSave(); countMutation(); }
+        }
+      }
+      S.groupDrag=null; render(); return;
+    }
     if (isRubberBanding) { endRubberBand(svgPoint(ev)); isRubberBanding=false; }
     canvasMousedownPt=null;
   });

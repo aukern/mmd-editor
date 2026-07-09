@@ -3,6 +3,15 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.2.1] — 2026-07-09
+
+### Fixes
+- **Groups can now be nested by dragging.** Dropping a group inside another group nests
+  it — on the canvas and in the generated Mermaid (`subgraph` inside `subgraph`) — just
+  like dropping a node into a group already did. Cycles are prevented (a group can't nest
+  inside its own descendant), and deleting a group now promotes its child groups/nodes to
+  the parent instead of orphaning them.
+
 ## [0.2.0] — 2026-07-09
 
 ### Canvas
