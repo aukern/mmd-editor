@@ -20,7 +20,7 @@
 
 <!-- Toolbar -->
 <div id="toolbar">
-  <h1>⬡ MMD</h1>
+  <h1><img class="app-logo" src="assets/logo.svg" alt="">MMD</h1>
   <span id="filenameDisplay" title="Double-click to rename">No file</span>
   <span id="saveStatus"></span>
   <div class="sep"></div>
@@ -94,7 +94,7 @@
     <!-- Startup modal — inside canvasWrap so tab bar stays accessible -->
     <div id="startupModal">
       <div class="modal-card" id="modalCard">
-        <div class="modal-icon">⬡</div>
+        <img class="modal-icon" src="assets/logo.svg" alt="">
         <h2>Mermaid Editor</h2>
         <p id="modalSubtitle">Open an existing .mmd file or create a new one. All changes auto-save.</p>
         <button class="modal-btn primary" id="modalOpenBtn">Open existing file…</button>
@@ -124,11 +124,11 @@
           <circle cx="0" cy="0" r="0.6" fill="#363740"/>
         </pattern>
         <marker id="mk-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c7c7d1"/></marker>
-        <marker id="mk-arrow-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ff8c6c"/></marker>
+        <marker id="mk-arrow-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d2b74d"/></marker>
         <marker id="mk-circle" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><circle cx="5" cy="5" r="4" fill="#c7c7d1"/></marker>
-        <marker id="mk-circle-sel" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><circle cx="5" cy="5" r="4" fill="#ff8c6c"/></marker>
+        <marker id="mk-circle-sel" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><circle cx="5" cy="5" r="4" fill="#d2b74d"/></marker>
         <marker id="mk-cross" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1,1 L9,9 M9,1 L1,9" stroke="#c7c7d1" stroke-width="1.8" fill="none"/></marker>
-        <marker id="mk-cross-sel" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1,1 L9,9 M9,1 L1,9" stroke="#ff8c6c" stroke-width="1.8" fill="none"/></marker>
+        <marker id="mk-cross-sel" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1,1 L9,9 M9,1 L1,9" stroke="#d2b74d" stroke-width="1.8" fill="none"/></marker>
       </defs>
       <g id="root">
         <!-- grid is inside #root so it gets the same transform — guaranteed dot alignment with snap grid -->

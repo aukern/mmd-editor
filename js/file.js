@@ -113,7 +113,7 @@ export function initFilenameRename() {
     const input = document.createElement('input');
     input.type = 'text';
     input.value = oldName;
-    input.style.cssText = 'font-size:11px;background:#1e1f27;color:#e6e6ea;border:1px solid #6c8cff;border-radius:4px;padding:2px 5px;width:160px;';
+    input.style.cssText = 'font-size:11px;background:#1e1f27;color:#e6e6ea;border:1px solid #ae9026;border-radius:4px;padding:2px 5px;width:160px;';
     display.replaceWith(input);
     input.focus(); input.select();
     async function commit() {

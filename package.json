@@ -35,6 +35,7 @@
       "index.html",
       "css/**/*",
       "js/**/*",
+      "assets/**/*",
       "electron/**/*",
       "LICENSE",
       "THIRD-PARTY-NOTICES.md"

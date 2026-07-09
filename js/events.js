@@ -161,7 +161,7 @@ function handlePortMousedown(ev, fromId, pos) {
   const ghost = makeSVG('line');
   ghost.setAttribute('x1',pos.x); ghost.setAttribute('y1',pos.y);
   ghost.setAttribute('x2',pos.x); ghost.setAttribute('y2',pos.y);
-  ghost.setAttribute('stroke','#6c8cff'); ghost.setAttribute('stroke-width','1.5');
+  ghost.setAttribute('stroke','#ae9026'); ghost.setAttribute('stroke-width','1.5');
   ghost.setAttribute('stroke-dasharray','6,3'); ghost.style.pointerEvents='none';
   document.getElementById('overlayLayer').appendChild(ghost);
   S.portDrag = {fromId, startPos:{x:pos.x,y:pos.y}, ghostLine:ghost, targetId:null};
@@ -565,7 +565,7 @@ export function spawnConnectGhost(fromNode) {
   const ghost = makeSVG('line');
   ghost.setAttribute('x1', fromNode.x); ghost.setAttribute('y1', fromNode.y);
   ghost.setAttribute('x2', fromNode.x); ghost.setAttribute('y2', fromNode.y);
-  ghost.setAttribute('stroke','#6c8cff'); ghost.setAttribute('stroke-width','1.5');
+  ghost.setAttribute('stroke','#ae9026'); ghost.setAttribute('stroke-width','1.5');
   ghost.setAttribute('stroke-dasharray','6,3'); ghost.style.pointerEvents='none';
   document.getElementById('overlayLayer').appendChild(ghost);
   S.connectGhost = ghost;

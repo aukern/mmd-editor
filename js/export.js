@@ -21,10 +21,10 @@ function computeBoundingBox() {
 }
 
 const EXPORT_STYLE = `
-.node .shape { fill: #33343d; stroke: #6c8cff; stroke-width: 2; }
+.node .shape { fill: #33343d; stroke: #ae9026; stroke-width: 2; }
 .node text { fill: #e6e6ea; font-size: 13px; text-anchor: middle; }
 .edge-label-text { fill: #9a9aa5; font-size: 11px; text-anchor: middle; dominant-baseline: middle; }
-.group-rect { fill: rgba(108,140,255,0.06); stroke: #6c8cff; stroke-width: 1.5; stroke-dasharray: 6,4; }
+.group-rect { fill: rgba(174,144,38,0.06); stroke: #ae9026; stroke-width: 1.5; stroke-dasharray: 6,4; }
 .group-title-text { fill: #9a9aa5; font-size: 12px; font-weight: 600; }
 `;
 

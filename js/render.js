@@ -15,10 +15,10 @@ export function shapeEl(n, w, h) {
     case 'rect': el = makeSVG('rect'); el.setAttribute('x',-hw); el.setAttribute('y',-hh); el.setAttribute('width',w); el.setAttribute('height',h); el.setAttribute('class','shape'); return el;
     case 'rounded': el = makeSVG('rect'); el.setAttribute('x',-hw); el.setAttribute('y',-hh); el.setAttribute('width',w); el.setAttribute('height',h); el.setAttribute('rx',8); el.setAttribute('class','shape'); return el;
     case 'stadium': el = makeSVG('rect'); el.setAttribute('x',-hw); el.setAttribute('y',-hh); el.setAttribute('width',w); el.setAttribute('height',h); el.setAttribute('rx',hh); el.setAttribute('class','shape'); return el;
-    case 'subroutine': { g = makeSVG('g'); const r = makeSVG('rect'); r.setAttribute('x',-hw); r.setAttribute('y',-hh); r.setAttribute('width',w); r.setAttribute('height',h); r.setAttribute('class','shape'); g.appendChild(r); [-hw+8, hw-8].forEach(lx=>{ const ln=makeSVG('line'); ln.setAttribute('x1',lx); ln.setAttribute('y1',-hh); ln.setAttribute('x2',lx); ln.setAttribute('y2',hh); ln.setAttribute('stroke','#6c8cff'); ln.setAttribute('stroke-width','1.5'); g.appendChild(ln); }); return g; }
-    case 'cylinder': { const capH=10; g=makeSVG('g'); const path=makeSVG('path'); path.setAttribute('d',`M${-hw},${-hh+capH} A${hw},${capH} 0 0 1 ${hw},${-hh+capH} L${hw},${hh-capH} A${hw},${capH} 0 0 1 ${-hw},${hh-capH} Z`); path.setAttribute('class','shape'); g.appendChild(path); const cap=makeSVG('ellipse'); cap.setAttribute('cx',0); cap.setAttribute('cy',-hh+capH); cap.setAttribute('rx',hw); cap.setAttribute('ry',capH); cap.setAttribute('fill','none'); cap.setAttribute('stroke','#6c8cff'); cap.setAttribute('stroke-width','1.5'); g.appendChild(cap); return g; }
+    case 'subroutine': { g = makeSVG('g'); const r = makeSVG('rect'); r.setAttribute('x',-hw); r.setAttribute('y',-hh); r.setAttribute('width',w); r.setAttribute('height',h); r.setAttribute('class','shape'); g.appendChild(r); [-hw+8, hw-8].forEach(lx=>{ const ln=makeSVG('line'); ln.setAttribute('x1',lx); ln.setAttribute('y1',-hh); ln.setAttribute('x2',lx); ln.setAttribute('y2',hh); ln.setAttribute('stroke','#ae9026'); ln.setAttribute('stroke-width','1.5'); g.appendChild(ln); }); return g; }
+    case 'cylinder': { const capH=10; g=makeSVG('g'); const path=makeSVG('path'); path.setAttribute('d',`M${-hw},${-hh+capH} A${hw},${capH} 0 0 1 ${hw},${-hh+capH} L${hw},${hh-capH} A${hw},${capH} 0 0 1 ${-hw},${hh-capH} Z`); path.setAttribute('class','shape'); g.appendChild(path); const cap=makeSVG('ellipse'); cap.setAttribute('cx',0); cap.setAttribute('cy',-hh+capH); cap.setAttribute('rx',hw); cap.setAttribute('ry',capH); cap.setAttribute('fill','none'); cap.setAttribute('stroke','#ae9026'); cap.setAttribute('stroke-width','1.5'); g.appendChild(cap); return g; }
     case 'circle': el = makeSVG('ellipse'); el.setAttribute('cx',0); el.setAttribute('cy',0); el.setAttribute('rx',hw); el.setAttribute('ry',hh); el.setAttribute('class','shape'); return el;
-    case 'doubleCircle': { g=makeSVG('g'); const oc=makeSVG('ellipse'); oc.setAttribute('cx',0); oc.setAttribute('cy',0); oc.setAttribute('rx',hw); oc.setAttribute('ry',hh); oc.setAttribute('class','shape'); g.appendChild(oc); const ic=makeSVG('ellipse'); ic.setAttribute('cx',0); ic.setAttribute('cy',0); ic.setAttribute('rx',hw-6); ic.setAttribute('ry',hh-6); ic.setAttribute('fill','none'); ic.setAttribute('stroke','#6c8cff'); ic.setAttribute('stroke-width','1.5'); g.appendChild(ic); return g; }
+    case 'doubleCircle': { g=makeSVG('g'); const oc=makeSVG('ellipse'); oc.setAttribute('cx',0); oc.setAttribute('cy',0); oc.setAttribute('rx',hw); oc.setAttribute('ry',hh); oc.setAttribute('class','shape'); g.appendChild(oc); const ic=makeSVG('ellipse'); ic.setAttribute('cx',0); ic.setAttribute('cy',0); ic.setAttribute('rx',hw-6); ic.setAttribute('ry',hh-6); ic.setAttribute('fill','none'); ic.setAttribute('stroke','#ae9026'); ic.setAttribute('stroke-width','1.5'); g.appendChild(ic); return g; }
     case 'asymmetric': return poly([[-hw,-hh],[hw-10,-hh],[hw,0],[hw-10,hh],[-hw,hh]]);
     case 'rhombus': return poly([[0,-hh],[hw,0],[0,hh],[-hw,0]]);
     case 'hexagon': return poly([[-hw+10,-hh],[hw-10,-hh],[hw,0],[hw-10,hh],[-hw+10,hh],[-hw,0]]);
@@ -217,7 +217,7 @@ export function updatePropsPanel() {
     document.getElementById('propNodeLabel').value = n.label.replace(/\n/g, '\\n');
     document.getElementById('propShapeSelect').value = n.shape;
     document.getElementById('propFill').value = (n.style && n.style.fill) || '#33343d';
-    document.getElementById('propStroke').value = (n.style && n.style.stroke) || '#6c8cff';
+    document.getElementById('propStroke').value = (n.style && n.style.stroke) || '#ae9026';
     document.getElementById('propTextColor').value = (n.style && n.style.color) || '#e6e6ea';
     const cdKeys = Object.keys(S.classDefs);
     const checks = document.getElementById('classChecks'), list = document.getElementById('classCheckList');
@@ -392,7 +392,7 @@ export function render() {
     edgesLayer.appendChild(hit);
     const line = makeSVG('line');
     line.setAttribute('x1',p1.x); line.setAttribute('y1',p1.y); line.setAttribute('x2',p2.x); line.setAttribute('y2',p2.y);
-    line.setAttribute('stroke', isSel ? '#ff8c6c' : '#c7c7d1');
+    line.setAttribute('stroke', isSel ? '#d2b74d' : '#c7c7d1');
     line.setAttribute('stroke-width', style.thick ? (isSel?5:4) : (isSel?2.5:1.5));
     if (style.dash) line.setAttribute('stroke-dasharray','6,4');
     if (style.mEnd !== 'none') line.setAttribute('marker-end', markerUrl(style.mEnd, isSel));
