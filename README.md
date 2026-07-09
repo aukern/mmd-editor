@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.svg" width="96" alt="MMD Editor">
+  <img src="assets/logo.png" width="96" alt="MMD Editor">
 </p>
 
 <h1 align="center">MMD Editor</h1>
@@ -143,6 +143,11 @@ git tag v0.1.0 && git push --tags   # see .github/workflows/release.yml
 - **Open/Save from anywhere.** Files must live in (or be symlinked into) the diagrams folder. A native file dialog that reads an arbitrary path and autosaves back to it would remove the constraint without loosening the server's confinement.
 - **Signed installers.** Unsigned means SmartScreen/Gatekeeper friction on first run. Signing is a cost/benefit call, not a technical blocker.
 - **More visually-editable types.** State, ER, and class diagrams are box-and-line families that could reuse much of the flowchart editor.
+
+## Contributing
+
+Bug reports, feature ideas, and PRs are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md)
+for how to run it, the design invariants worth protecting, and the review process.
 
 ## License
 
