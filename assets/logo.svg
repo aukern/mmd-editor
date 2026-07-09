@@ -1,26 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <rect x="0" y="0" width="1024" height="1024" rx="205" fill="#ffffff"/>
   <svg x="113" y="113" width="798" height="798" viewBox="0 0 2012 2004" preserveAspectRatio="xMidYMid meet">
-
-  <sodipodi:namedview
-     id="namedview21"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     showgrid="false"
-     inkscape:zoom="1.6726547"
-     inkscape:cx="251.6957"
-     inkscape:cy="222.40095"
-     inkscape:window-width="1920"
-     inkscape:window-height="1008"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="svg19" />
+  
   <defs
      id="defs7">
     <linearGradient
@@ -64,6 +45,5 @@
      fill="url(#Gradient1)"
      d="M 1880.29 1147.2 C 1933.72 1146.89 1977.28 1189.93 1977.62 1243.35 C 1977.95 1296.77 1934.93 1340.36 1881.51 1340.72 C 1828.05 1341.07 1784.43 1298.02 1784.1 1244.56 C 1783.76 1191.11 1826.84 1147.51 1880.29 1147.2 z"
      id="path17" />
-
-  </svg>
+</svg>
 </svg>
