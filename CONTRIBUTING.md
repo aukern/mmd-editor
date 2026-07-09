@@ -116,7 +116,9 @@ when they fit the tool's purpose: a translation layer between a human and an AI 
 - Update the README / ROADMAP if behavior or scope changed.
 - Don't commit `node_modules/`, `dist/`, or `diagrams/` (all gitignored).
 - Releases are cut by pushing a `v*` tag (maintainers) — see
-  [`.github/workflows/release.yml`](.github/workflows/release.yml).
+  [`.github/workflows/release.yml`](.github/workflows/release.yml). To bump the
+  version, update **`package.json`**, the label in the startup modal
+  (`index.html` → `.modal-version`), and add a `CHANGELOG.md` entry, then tag.
 
 ## Security
 
