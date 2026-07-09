@@ -106,7 +106,7 @@ textarea{width:100%;background:#16171c;color:#b8e0b8;border:1px solid var(--bord
 #mmdOutWrap textarea{border:none;border-radius:0;}
 #mmdOutHiBar{position:absolute;left:0;right:0;display:none;pointer-events:none;background:rgba(174,144,38,0.22);border-left:2px solid var(--accent);z-index:0;}
 #mmdIn{height:80px;}
-.diff-out{max-height:220px;overflow:auto;background:#16171c;border:1px solid var(--border);border-radius:5px;padding:4px 0;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11px;line-height:1.5;color:var(--muted);}
+.diff-out{position:relative;max-height:220px;overflow:auto;background:#16171c;border:1px solid var(--border);border-radius:5px;padding:4px 0;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11px;line-height:1.5;color:var(--muted);}
 .diff-out .dl{display:block;padding:0 8px 0 5px;border-left:3px solid transparent;white-space:pre-wrap;overflow-wrap:anywhere;}
 .diff-out .dl .pfx{display:inline-block;width:1ch;opacity:.45;user-select:none;}
 .diff-out .dl.add{color:#7ed488;border-left-color:#2f6b37;background:rgba(94,194,105,.06);}
@@ -114,15 +114,16 @@ textarea{width:100%;background:#16171c;color:#b8e0b8;border:1px solid var(--bord
 .diff-out .dl.ctx{color:var(--muted);}
 .diff-out .dl.add .wd{background:rgba(94,194,105,.30);color:#c6f0cc;border-radius:2px;font-weight:600;}
 .diff-out .dl.del .wd{background:rgba(224,108,108,.30);color:#ffd0d0;border-radius:2px;font-weight:600;}
-.diff-out .hunk-sep{border-top:1px dashed var(--border);margin:6px 0;}
-.diff-out .hunk-sep.first{border-top:none;margin:0;}
-.diff-out .hunk-sep.flash{animation:hunkFlash .7s ease;}
+.diff-out .hunk{border-top:1px dashed var(--border);}
+.diff-out .hunk.first{border-top:none;}
+.diff-out .hunk.flash{animation:hunkFlash .8s ease;}
 .diff-out .ctx-empty{padding:6px 8px;color:var(--muted);}
 .diff-out.just-copied{animation:diffFlash .6s ease;}
 @keyframes diffFlash{0%{background:rgba(174,144,38,.28);}100%{background:#16171c;}}
-@keyframes hunkFlash{0%{border-top-color:var(--accent2);}100%{border-top-color:var(--border);}}
+@keyframes hunkFlash{0%{background:rgba(174,144,38,.30);}100%{background:transparent;}}
 .diff-nav{display:inline-flex;align-items:center;gap:4px;}
-.diff-nav button{padding:1px 5px;font-size:9px;line-height:1.2;min-width:0;}
+.diff-nav button{padding:1px 6px;font-size:10px;line-height:1.2;min-width:0;cursor:pointer;}
+.diff-nav button:disabled{opacity:.3;cursor:default;}
 .diff-nav #diffJumpInfo{min-width:26px;text-align:center;font-size:10px;}
 .diff-out{scroll-behavior:smooth;}
 #diffCopyBtn.copied{background:var(--accent);border-color:var(--accent);color:#1a1600;font-weight:600;}

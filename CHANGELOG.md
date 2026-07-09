@@ -3,6 +3,14 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.2.2] — 2026-07-09
+
+### Fixes
+- **Diff jump arrows (▲▼) now work.** They were disabled unless the diff had two or more
+  hunks (so a single change made them unresponsive), and the scroll/flash target was
+  mis-anchored. The arrows are now active whenever there's a change, scroll to the target
+  hunk correctly, and flash it so the jump is visible.
+
 ## [0.2.1] — 2026-07-09
 
 ### Fixes

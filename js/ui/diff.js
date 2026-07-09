@@ -95,14 +95,15 @@ export function resetDiffBaseline() {
 // clean hunk separators. Returns the list of hunk anchors (for jump navigation).
 function renderDiff(container, diffText) {
   container.innerHTML = '';
-  const anchors = [];
+  const anchors = [];       // one wrapper element per hunk (a jump target)
+  let block = null;
   let delBuf = [], addBuf = [];
 
   const row = (cls, prefix, html) => {
     const el = document.createElement('div');
     el.className = 'dl ' + cls;
     el.innerHTML = `<span class="pfx">${prefix}</span>${html}`;
-    container.appendChild(el);
+    (block || container).appendChild(el);
   };
 
   const flush = () => {
@@ -118,12 +119,12 @@ function renderDiff(container, diffText) {
 
   diffText.split('\n').forEach(line => {
     const c = line[0];
-    if (c === '@') {                       // hunk boundary → clean separator + jump anchor
+    if (c === '@') {                       // hunk boundary → start a new hunk block (jump target)
       flush();
-      const sep = document.createElement('div');
-      sep.className = 'hunk-sep' + (container.children.length === 0 ? ' first' : '');
-      container.appendChild(sep);
-      anchors.push(sep);
+      block = document.createElement('div');
+      block.className = 'hunk' + (anchors.length === 0 ? ' first' : '');
+      container.appendChild(block);
+      anchors.push(block);
     } else if (c === '-') { delBuf.push(line.slice(1)); }
     else if (c === '+') { addBuf.push(line.slice(1)); }
     else { flush(); row('ctx', ' ', esc(line.slice(1))); }
@@ -134,20 +135,21 @@ function renderDiff(container, diffText) {
 
 function updateJumpInfo() {
   const info = document.getElementById('diffJumpInfo');
-  if (!info) return;
   const n = diffAnchors.length;
-  info.textContent = n ? `${Math.max(0, diffAnchorIdx) + 1}/${n}` : '';
+  if (info) info.textContent = n ? `${Math.max(0, diffAnchorIdx) + 1}/${n}` : '';
   const prev = document.getElementById('diffPrevBtn'), next = document.getElementById('diffNextBtn');
-  if (prev) prev.disabled = n < 2;
-  if (next) next.disabled = n < 2;
+  if (prev) prev.disabled = n < 1;       // enabled whenever there's at least one change
+  if (next) next.disabled = n < 1;
 }
 
 function jump(dir) {
-  if (!diffAnchors.length) return;
-  diffAnchorIdx = (diffAnchorIdx + dir + diffAnchors.length) % diffAnchors.length;
+  const n = diffAnchors.length;
+  if (!n) return;
+  if (diffAnchorIdx < 0) diffAnchorIdx = dir > 0 ? 0 : n - 1;
+  else diffAnchorIdx = (diffAnchorIdx + dir + n) % n;
   const el = diffAnchors[diffAnchorIdx];
   const out = document.getElementById('diffOut');
-  if (out && el) out.scrollTop = el.offsetTop - 6;
+  if (out && el) out.scrollTop = Math.max(0, el.offsetTop - 6);
   if (el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
   updateJumpInfo();
 }
