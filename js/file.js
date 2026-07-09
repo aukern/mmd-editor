@@ -93,7 +93,12 @@ async function autoReloadFromDisk(filename) {
     }
     const mtime = await serverMtime(filename);
     if (mtime !== null) S.lastKnownMtime = mtime;
-    document.getElementById('statusText').textContent = 'Synced from disk.';
+    // This change came from OUTSIDE the editor (e.g. an AI writing the same .mmd).
+    // Advance the diff baseline to it so those edits aren't attributed to the user —
+    // the "Changes since checkpoint" diff must only contain what the user changed.
+    const { resetBaseline } = window._editorDiff || {};
+    if (resetBaseline) resetBaseline();
+    document.getElementById('statusText').textContent = 'Synced external changes from disk — diff reset to here.';
   } catch(e) {
     document.getElementById('statusText').textContent = 'Sync failed: ' + e.message;
   }

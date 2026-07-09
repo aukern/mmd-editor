@@ -89,9 +89,8 @@ export function buildMenuBar() {
           S.snapAlways = !S.snapAlways;
           document.getElementById('snapGridBtn').classList.toggle('active', S.snapAlways);
         }},
-        { label: 'Toggle Sidebar', action: () => {
-          const sb = document.getElementById('sidebar');
-          sb.style.display = sb.style.display === 'none' ? '' : 'none';
+        { label: 'Toggle Sidebar', shortcut: 'Ctrl+\\', action: () => {
+          if (window._editorUI && window._editorUI.toggleSidebar) window._editorUI.toggleSidebar();
         }},
       ]
     },

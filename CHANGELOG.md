@@ -3,6 +3,32 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.2.0] — 2026-07-09
+
+### Canvas
+- `Ctrl` `+` / `Ctrl` `-` now zoom the **canvas** instead of the whole app, and
+  `Ctrl` `0` fits the diagram. (Removed the Electron page-zoom menu roles and pinned
+  the window zoom factor to 100%.)
+
+### Diff ("Changes since checkpoint")
+- **AI edits no longer pollute your diff.** When the `.mmd` is changed from outside the
+  editor (e.g. an AI writing the same file), the diff baseline now advances to that
+  content, so "Changes since checkpoint" only ever contains *your* edits — the ones you
+  mean to hand back to the AI.
+- **Word-level highlighting** inside changed lines, a colored gutter, cleaner hunk
+  separators, and **prev/next jump** buttons to navigate changes.
+- **"Copy for AI" now confirms itself**: the button flashes ✓ and the diff box flashes as
+  it resets, instead of the change list silently vanishing.
+
+### Side panel
+- Section headers are now distinct bands with a gold accent stripe.
+- The whole side panel can be collapsed (button, `View → Toggle Sidebar`, or `Ctrl` `\`);
+  the state is remembered between sessions.
+
+### Fixes
+- The Open-file list re-fetches every time the picker opens, so files added or symlinked
+  while the app is running now appear.
+
 ## [0.1.0] — 2026-07-08
 
 First public release.

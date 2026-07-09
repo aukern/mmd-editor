@@ -47,19 +47,109 @@ export function unifiedDiff(beforeText, afterText, context = 3) {
   return out.join('\n');
 }
 
+// ── Word-level diff for a changed line pair ───────────────────────────────────
+// A flowchart edit usually rewrites a whole line (e.g. a node label), so a plain
+// -/+ pair looks nearly identical. Highlight only the tokens that actually differ.
+function esc(s) { return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+function tokenize(s) { return s.match(/\s+|[A-Za-z0-9_]+|[^\sA-Za-z0-9_]/g) || []; }
+
+function wordDiff(aLine, bLine) {
+  const A = tokenize(aLine), B = tokenize(bLine);
+  const n = A.length, m = B.length;
+  const dp = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = m - 1; j >= 0; j--)
+      dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  let i = 0, j = 0, aOut = '', bOut = '';
+  const mark = t => '<span class="wd">' + esc(t) + '</span>';
+  while (i < n && j < m) {
+    if (A[i] === B[j]) { aOut += esc(A[i]); bOut += esc(B[j]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { aOut += mark(A[i]); i++; }
+    else { bOut += mark(B[j]); j++; }
+  }
+  while (i < n) aOut += mark(A[i++]);
+  while (j < m) bOut += mark(B[j++]);
+  return { a: aOut, b: bOut };
+}
+
 // ── Checkpoint stack + panel ──────────────────────────────────────────────────
 let lastDiffText = '';
 let cacheCur = null, cacheBase = null;
+let diffAnchors = [];     // hunk-start elements, for prev/next jump
+let diffAnchorIdx = -1;
 
 function baseline() {
   return (S.diffCheckpoints && S.diffCheckpoints.length) ? S.diffCheckpoints[S.diffCheckpoints.length - 1] : null;
 }
 
-// Set the baseline to the current content (called when a diagram is loaded).
+// Set the baseline to the current content (called when a diagram is loaded, or
+// when an external/AI change is synced from disk — so those edits aren't shown).
 export function resetDiffBaseline() {
   S.diffCheckpoints = [getCurrentSource()];
   cacheCur = cacheBase = null;
   updateDiffPanel();
+}
+
+// Render the unified diff into the panel with a gutter, word-level highlights and
+// clean hunk separators. Returns the list of hunk anchors (for jump navigation).
+function renderDiff(container, diffText) {
+  container.innerHTML = '';
+  const anchors = [];
+  let delBuf = [], addBuf = [];
+
+  const row = (cls, prefix, html) => {
+    const el = document.createElement('div');
+    el.className = 'dl ' + cls;
+    el.innerHTML = `<span class="pfx">${prefix}</span>${html}`;
+    container.appendChild(el);
+  };
+
+  const flush = () => {
+    if (!delBuf.length && !addBuf.length) return;
+    const pairs = Math.min(delBuf.length, addBuf.length);
+    const dels = delBuf.map(l => esc(l));
+    const adds = addBuf.map(l => esc(l));
+    for (let k = 0; k < pairs; k++) { const wd = wordDiff(delBuf[k], addBuf[k]); dels[k] = wd.a; adds[k] = wd.b; }
+    dels.forEach(h => row('del', '-', h));
+    adds.forEach(h => row('add', '+', h));
+    delBuf = []; addBuf = [];
+  };
+
+  diffText.split('\n').forEach(line => {
+    const c = line[0];
+    if (c === '@') {                       // hunk boundary → clean separator + jump anchor
+      flush();
+      const sep = document.createElement('div');
+      sep.className = 'hunk-sep' + (container.children.length === 0 ? ' first' : '');
+      container.appendChild(sep);
+      anchors.push(sep);
+    } else if (c === '-') { delBuf.push(line.slice(1)); }
+    else if (c === '+') { addBuf.push(line.slice(1)); }
+    else { flush(); row('ctx', ' ', esc(line.slice(1))); }
+  });
+  flush();
+  return anchors;
+}
+
+function updateJumpInfo() {
+  const info = document.getElementById('diffJumpInfo');
+  if (!info) return;
+  const n = diffAnchors.length;
+  info.textContent = n ? `${Math.max(0, diffAnchorIdx) + 1}/${n}` : '';
+  const prev = document.getElementById('diffPrevBtn'), next = document.getElementById('diffNextBtn');
+  if (prev) prev.disabled = n < 2;
+  if (next) next.disabled = n < 2;
+}
+
+function jump(dir) {
+  if (!diffAnchors.length) return;
+  diffAnchorIdx = (diffAnchorIdx + dir + diffAnchors.length) % diffAnchors.length;
+  const el = diffAnchors[diffAnchorIdx];
+  const out = document.getElementById('diffOut');
+  if (out && el) out.scrollTop = el.offsetTop - 6;
+  if (el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  updateJumpInfo();
 }
 
 export function updateDiffPanel() {
@@ -73,20 +163,15 @@ export function updateDiffPanel() {
 
   const diff = unifiedDiff(base, cur);
   lastDiffText = diff;
-  out.innerHTML = '';
   if (!diff) {
-    const el = document.createElement('div'); el.className = 'ctx'; el.textContent = 'No changes since checkpoint.'; out.appendChild(el);
+    out.innerHTML = '<div class="ctx-empty">No changes since checkpoint.</div>';
+    diffAnchors = []; diffAnchorIdx = -1;
   } else {
-    const frag = document.createDocumentFragment();
-    diff.split('\n').forEach(line => {
-      const c = line[0];
-      const el = document.createElement('div');
-      el.className = c === '+' ? 'add' : c === '-' ? 'del' : c === '@' ? 'hunk' : 'ctx';
-      el.textContent = line;
-      frag.appendChild(el);
-    });
-    out.appendChild(frag);
+    diffAnchors = renderDiff(out, diff);
+    diffAnchorIdx = -1;
   }
+  updateJumpInfo();
+
   const status = document.getElementById('diffStatus');
   if (status) {
     const cps = (S.diffCheckpoints.length || 1) - 1;
@@ -102,13 +187,27 @@ export function updateDiffPanel() {
 
 function copyForAI() {
   const status = document.getElementById('statusText');
+  const btn = document.getElementById('diffCopyBtn');
   if (!lastDiffText) { document.getElementById('diffStatus').textContent = 'Nothing to copy — no changes since checkpoint.'; return; }
+  const changes = lastDiffText.split('\n').filter(l => l[0] === '+' || l[0] === '-').length;
   const payload = '# Change to a Mermaid flowchart (unified diff; `-` = before edit, `+` = after edit):\n\n' + lastDiffText;
   navigator.clipboard.writeText(payload).catch(() => {});
+
+  // Legible confirmation: the diff is about to reset to empty, which otherwise looks
+  // like nothing happened. Flash the button and the diff box so the copy registers.
+  if (btn) {
+    btn.textContent = '✓ Copied';
+    btn.classList.add('copied');
+    clearTimeout(btn._copyTimer);
+    btn._copyTimer = setTimeout(() => { btn.textContent = 'Copy for AI'; btn.classList.remove('copied'); }, 1500);
+  }
+  const out = document.getElementById('diffOut');
+  if (out) { out.classList.remove('just-copied'); void out.offsetWidth; out.classList.add('just-copied'); }
+
   S.diffCheckpoints.push(getCurrentSource());                 // advance baseline to now
   cacheCur = cacheBase = null;
   updateDiffPanel();
-  if (status) status.textContent = 'Diff copied — checkpoint advanced.';
+  if (status) status.textContent = `Copied ${changes} line-change(s) for the AI — checkpoint advanced.`;
 }
 
 function undoCheckpoint() {
@@ -127,6 +226,10 @@ export function initDiffPanel() {
   window._editorDiff = { update: updateDiffPanel, resetBaseline: resetDiffBaseline };
   const copyBtn = document.getElementById('diffCopyBtn');
   const undoBtn = document.getElementById('diffUndoBtn');
+  const prevBtn = document.getElementById('diffPrevBtn');
+  const nextBtn = document.getElementById('diffNextBtn');
   if (copyBtn) copyBtn.addEventListener('click', copyForAI);
   if (undoBtn) undoBtn.addEventListener('click', undoCheckpoint);
+  if (prevBtn) prevBtn.addEventListener('click', () => jump(-1));
+  if (nextBtn) nextBtn.addEventListener('click', () => jump(1));
 }

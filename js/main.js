@@ -39,6 +39,20 @@ function initCollapsibleSidebar() {
   });
 }
 
+// Whole-sidebar collapse — hides the panel and shows a slim re-open tab. Persisted.
+function initSidebarCollapse() {
+  const KEY = 'mmd.sidebarCollapsed';
+  const apply = c => document.body.classList.toggle('sidebar-collapsed', c);
+  const set = c => { apply(c); try { localStorage.setItem(KEY, c ? '1' : '0'); } catch (e) {} };
+  const toggle = () => set(!document.body.classList.contains('sidebar-collapsed'));
+  let initial = false;
+  try { initial = localStorage.getItem(KEY) === '1'; } catch (e) {}
+  apply(initial);
+  document.getElementById('sidebarCollapseBtn')?.addEventListener('click', () => set(true));
+  document.getElementById('sidebarReopenBtn')?.addEventListener('click', () => set(false));
+  window._editorUI = { toggleSidebar: toggle };
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
   // Build UI components
@@ -56,6 +70,7 @@ function init() {
   initDiffPanel();
   initViewmode();
   initCollapsibleSidebar();
+  initSidebarCollapse();
 
   // Close shape/export dropdowns on outside click
   document.addEventListener('click', () => {

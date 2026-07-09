@@ -469,6 +469,8 @@ export function initKeyboard() {
   // works in every mode (editor / view / preview) and beats the browser's page zoom.
   window.addEventListener('keydown', ev => {
     if (!(ev.ctrlKey || ev.metaKey) || ev.altKey) return;
+    // Ctrl+\ toggles the whole side panel.
+    if (ev.key === '\\') { ev.preventDefault(); window._editorUI?.toggleSidebar?.(); return; }
     // '=' shares the key with '+'; NumpadAdd/Subtract map to Add/Subtract keys.
     const zoomIn  = ev.key === '+' || ev.key === '=' || ev.code === 'NumpadAdd';
     const zoomOut = ev.key === '-' || ev.key === '_' || ev.code === 'NumpadSubtract';
