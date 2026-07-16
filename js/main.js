@@ -60,6 +60,11 @@ const RESTORE_KEY = 'mmd.restoreSession';
 
 function sessionEnabled() { try { return localStorage.getItem(RESTORE_KEY) === '1'; } catch (e) { return false; } }
 
+// Snapshot the previous session at module load — BEFORE the initial empty tab renders
+// and saveSession() overwrites it with an empty list. restoreSession() reads this.
+let bootSession = null;
+try { bootSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { bootSession = null; }
+
 function saveSession() {
   if (!sessionEnabled()) return;
   try {
@@ -81,7 +86,7 @@ function setSessionEnabled(on) {
 
 async function restoreSession() {
   if (!sessionEnabled()) return;
-  let data; try { data = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { return; }
+  const data = bootSession;   // captured at load, before the empty tab overwrote it
   if (!data || !Array.isArray(data.files) || !data.files.length) return;
   let opened = 0;
   for (const name of data.files) {

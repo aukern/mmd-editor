@@ -3,6 +3,14 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.5.2] — 2026-07-09
+
+### Fixes
+- **"Reopen last files on startup" now actually reopens the files.** The initial empty tab
+  created at launch saved an empty file list over the stored session before it could be
+  read, so there was nothing left to restore. The previous session is now snapshotted at
+  load, before anything can overwrite it.
+
 ## [0.5.1] — 2026-07-09
 
 ### Fixes
