@@ -3,6 +3,14 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.5.0] — 2026-07-09
+
+### Startup
+- **"Reopen last files on startup"** — a toggle in the **File** menu (like a browser's
+  "continue where you left off"). When on, the set of open files is remembered and
+  reopened next launch, restoring the tab you were on. Off by default; the menu shows a
+  ✓ when enabled. Files that were moved or deleted since last session are skipped.
+
 ## [0.4.0] — 2026-07-09
 
 ### Tabs

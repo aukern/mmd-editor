@@ -3,7 +3,7 @@ import { applyTransform, pushUndo, cloneState, fitAll, setZoom, svgPoint, nodeSi
 import { render, updateUndoRedo, updateMermaidOutput, getMermaidText, getCurrentSource } from './render.js';
 import { loadFromMermaidText } from './loader.js';
 import { takeSnapshot, scheduleSnapshot, countMutation, buildFileContent, refreshHistoryPanel, initHistoryPanel } from './history.js';
-import { scheduleSave, doAutoSave, startFileWatcher, stopFileWatcher, serverMtime, updateSaveStatus, initFilenameRename } from './file.js';
+import { scheduleSave, doAutoSave, startFileWatcher, stopFileWatcher, serverMtime, serverRead, updateSaveStatus, initFilenameRename } from './file.js';
 import { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab, loadIntoCurrentTab, syncModal } from './tabs.js';
 import { initCanvasEvents, initToolbar, initKeyboard, addNode, addGroup, addEdge, deleteSelected, copySelection, pasteClipboard, duplicateSelection, getPortMousedownHandler, spawnConnectGhost, updateCanvasCursor } from './events.js';
 import { initInline, activateInline, cancelInline } from './ui/inline.js';
@@ -53,6 +53,50 @@ function initSidebarCollapse() {
   window._editorUI = { toggleSidebar: toggle };
 }
 
+// ── Session restore ("reopen last files on startup") ──────────────────────────
+// When enabled, the set of open files is remembered and reopened next launch.
+const SESSION_KEY = 'mmd.session';
+const RESTORE_KEY = 'mmd.restoreSession';
+
+function sessionEnabled() { try { return localStorage.getItem(RESTORE_KEY) === '1'; } catch (e) { return false; } }
+
+function saveSession() {
+  if (!sessionEnabled()) return;
+  try {
+    const files = S.tabs.map(t => t.filename).filter(Boolean);
+    const active = (S.activeTabIdx >= 0 && S.tabs[S.activeTabIdx]) ? S.tabs[S.activeTabIdx].filename : null;
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ files, active }));
+  } catch (e) {}
+}
+
+function setSessionEnabled(on) {
+  try { localStorage.setItem(RESTORE_KEY, on ? '1' : '0'); } catch (e) {}
+  if (on) saveSession();
+  else { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} }
+  const st = document.getElementById('statusText');
+  if (st) st.textContent = on
+    ? 'Reopen last files on startup: ON — this session will be remembered.'
+    : 'Reopen last files on startup: OFF.';
+}
+
+async function restoreSession() {
+  if (!sessionEnabled()) return;
+  let data; try { data = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { return; }
+  if (!data || !Array.isArray(data.files) || !data.files.length) return;
+  let opened = 0;
+  for (const name of data.files) {
+    try { const text = await serverRead(name); loadIntoCurrentTab(name, text); opened++; }
+    catch (e) { /* file was moved/deleted since last session — skip it */ }
+  }
+  if (data.active) {
+    const idx = S.tabs.findIndex(t => t.filename === data.active);
+    if (idx >= 0 && idx !== S.activeTabIdx) switchTab(idx);
+  }
+  if (opened) document.getElementById('statusText').textContent = `Reopened ${opened} file(s) from last session.`;
+}
+
+window._editorSession = { save: saveSession, enabled: sessionEnabled, toggle: () => setSessionEnabled(!sessionEnabled()) };
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
   // Build UI components
@@ -82,6 +126,10 @@ function init() {
   // Create initial no-file tab so the modal has a tab to attach to
   newTab();
   renderTabBar();
+
+  // If "reopen last files on startup" is on, restore the previous session's files
+  // (this adopts the empty tab and hides the startup modal). No-op when disabled.
+  restoreSession();
 
   // Snapshots are mutation-count based — no timer needed here
 

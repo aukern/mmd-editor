@@ -13,6 +13,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .menu-entry.disabled{opacity:.4;cursor:default;pointer-events:none;}
 .menu-sep{height:1px;background:var(--border);margin:4px 0;}
 .menu-entry .menu-kbd{font-size:10px;color:var(--muted);}
+.menu-entry .menu-lead{display:flex;align-items:center;gap:5px;min-width:0;}
+.menu-check{display:inline-block;width:11px;text-align:center;color:var(--accent2);flex-shrink:0;}
 
 /* ── Tab bar ── */
 #tabBar{display:flex;align-items:stretch;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;min-height:32px;}

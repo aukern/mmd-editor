@@ -175,6 +175,9 @@ export function renderTabBar() {
   addBtn.title = 'New tab';
   addBtn.addEventListener('click', () => newTab());
   bar.appendChild(addBtn);
+
+  // Persist the open-files set for "reopen last files on startup" (no-op when off).
+  if (window._editorSession && window._editorSession.save) window._editorSession.save();
 }
 
 export function switchTab(idx) {

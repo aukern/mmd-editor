@@ -15,18 +15,26 @@ function openMenu(itemId, panelId) {
   if (!item || !panel) return;
   item.classList.add('open');
   panel.classList.add('open');
+  // Sync any checkable entries to their current state before the menu is shown.
+  panel.querySelectorAll('.menu-entry').forEach(el => { if (el._refreshCheck) el._refreshCheck(); });
   const r = item.getBoundingClientRect();
   panel.style.left = r.left + 'px';
   panel.style.top = r.bottom + 'px';
 }
 
-function menuEntry(label, shortcut, action, disabled) {
+function menuEntry(label, shortcut, action, disabled, check) {
   if (label === '-') {
     const sep = document.createElement('div'); sep.className = 'menu-sep'; return sep;
   }
   const el = document.createElement('div');
   el.className = 'menu-entry' + (disabled ? ' disabled' : '');
-  el.innerHTML = `<span>${label}</span>${shortcut ? `<span class="menu-kbd">${shortcut}</span>` : ''}`;
+  el.innerHTML =
+    `<span class="menu-lead">${check ? '<span class="menu-check"></span>' : ''}<span>${label}</span></span>` +
+    `${shortcut ? `<span class="menu-kbd">${shortcut}</span>` : ''}`;
+  if (check) {
+    el._refreshCheck = () => { const c = el.querySelector('.menu-check'); if (c) c.textContent = check() ? '✓' : ''; };
+    el._refreshCheck();
+  }
   if (!disabled && action) {
     el.addEventListener('click', () => { closeAllMenus(); action(); });
   }
@@ -52,6 +60,10 @@ export function buildMenuBar() {
         { label: 'Rename File', action: () => { document.getElementById('filenameDisplay').dispatchEvent(new MouseEvent('dblclick')); }},
         { label: '-' },
         { label: 'Close Tab', action: () => { const { closeTab } = window._editorTabs||{}; if(closeTab && S.activeTabIdx>=0) closeTab(S.activeTabIdx); }},
+        { label: '-' },
+        { label: 'Reopen last files on startup',
+          check: () => (window._editorSession && window._editorSession.enabled) ? window._editorSession.enabled() : false,
+          action: () => { if (window._editorSession && window._editorSession.toggle) window._editorSession.toggle(); }},
       ]
     },
     {
@@ -113,7 +125,7 @@ export function buildMenuBar() {
 
     const panel = document.createElement('div');
     panel.className = 'menu-panel'; panel.id = m.panelId;
-    m.entries.forEach(e => panel.appendChild(menuEntry(e.label, e.shortcut, e.action, e.disabled)));
+    m.entries.forEach(e => panel.appendChild(menuEntry(e.label, e.shortcut, e.action, e.disabled, e.check)));
     document.body.appendChild(panel);
   });
 

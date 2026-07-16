@@ -1,7 +1,7 @@
 {
   "name": "mmd-editor",
   "productName": "MMD Editor",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Visual editor for Mermaid flowcharts, with a live view for every Mermaid diagram type.",
   "author": "aukern",
   "license": "MIT",
