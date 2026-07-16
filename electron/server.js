@@ -1,8 +1,9 @@
 // Local HTTP server for the Electron app — a Node port of launch.py.
 // Serves the static frontend from `appDir` and the file API over `diagramsDir`.
-// Binds to an ephemeral port on 127.0.0.1 (no fixed port, no idle-shutdown, no
-// pid file; the Electron window lifecycle owns the process). /ping and /shutdown
-// are accepted as no-ops so the frontend's existing calls stay harmless.
+// Binds a stable port on 127.0.0.1 (see STABLE_PORT below) so the origin — and thus
+// localStorage — persists across launches; falls back to an ephemeral port only if it's
+// taken. No idle-shutdown, no pid file; the Electron window lifecycle owns the process.
+// /ping and /shutdown are accepted as no-ops so the frontend's existing calls stay harmless.
 
 const http = require('http');
 const fs = require('fs');
@@ -151,14 +152,31 @@ function handle(req, res, appDir, diagramsDir) {
   sendText(res, 405, 'method not allowed');
 }
 
+// A STABLE loopback port keeps the origin (http://127.0.0.1:PORT) constant across
+// launches, so localStorage-backed settings ("reopen last files on startup", etc.)
+// actually persist — an ephemeral port gives a new origin every launch and silently
+// wipes them. The single-instance lock prevents the app colliding with itself; if the
+// port is held by something else, we fall back to an ephemeral one (that run just won't
+// remember settings).
+const STABLE_PORT = 39400;
+
 function startServer(appDir, diagramsDir) {
   return new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {
       try { handle(req, res, appDir, diagramsDir); }
       catch (e) { sendText(res, 500, 'server error: ' + (e && e.message)); }
     });
-    server.on('error', reject);
-    server.listen(0, '127.0.0.1', () => resolve({ server, port: server.address().port }));
+    let usedFallback = false;
+    server.on('error', (err) => {
+      if (!usedFallback && err && err.code === 'EADDRINUSE') {
+        usedFallback = true;
+        server.listen(0, '127.0.0.1');     // stable port busy → ephemeral fallback
+      } else {
+        reject(err);
+      }
+    });
+    server.on('listening', () => resolve({ server, port: server.address().port }));
+    server.listen(STABLE_PORT, '127.0.0.1');
   });
 }
 

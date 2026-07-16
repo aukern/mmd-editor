@@ -3,6 +3,16 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.5.1] — 2026-07-09
+
+### Fixes
+- **Settings now persist across launches** (fixes "reopen last files on startup" doing
+  nothing). The desktop app served itself on a new random port every launch, so the page
+  origin changed each time and `localStorage` — where the toggle and the saved session
+  live — was wiped. The app now binds a stable loopback port, so settings and the last
+  session actually survive a restart. *(You'll need to re-enable the toggle once after
+  updating, since the old setting was stored under the previous origin.)*
+
 ## [0.5.0] — 2026-07-09
 
 ### Startup
