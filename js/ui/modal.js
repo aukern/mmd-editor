@@ -49,75 +49,101 @@ function buildTree(files) {
 }
 
 const collapsedDirs = new Set();
+let treeSeeded = false;
 
-function renderFileTree(files, container, query, onOpen) {
+// All .mmd paths under a tree node (recursive) — powers the folder count + "Open all".
+function filesUnder(node) {
+  let out = [...node.files];
+  for (const d of Object.keys(node.dirs)) out = out.concat(filesUnder(node.dirs[d]));
+  return out;
+}
+
+// Collapse every folder by default so the picker stays compact and scannable at any
+// scale. Root files are always visible; folders are opened on demand.
+function seedCollapsed(node, prefix) {
+  for (const dir of Object.keys(node.dirs)) {
+    const full = prefix ? prefix + '/' + dir : dir;
+    collapsedDirs.add(full);
+    seedCollapsed(node.dirs[dir], full);
+  }
+}
+
+function fileRow(fullPath, onOpen, showFullPath) {
+  const item = document.createElement('div');
+  item.className = 'file-row';
+  item.innerHTML = `<span class="file-icon">📄</span><span class="file-name"></span>`;
+  item.querySelector('.file-name').textContent = showFullPath ? fullPath : fullPath.split('/').pop();
+  item.title = fullPath;
+  item.addEventListener('click', () => onOpen(fullPath, item));
+  return item;
+}
+
+function renderFileTree(files, container, query, onOpen, onOpenAll) {
   container.innerHTML = '';
   const noMatch = document.getElementById('fileNoMatch');
   const q = (query || '').toLowerCase().trim();
 
-  // Search mode: flat list of matching files with full paths
+  // Search mode: flat list of matching files, showing full paths for disambiguation.
   if (q) {
-    const filtered = files.filter(f => f.toLowerCase().includes(q));
-    if (!filtered.length) {
-      if (noMatch) noMatch.style.display = 'block';
-      return;
-    }
+    const filtered = files.filter(f => f.toLowerCase().includes(q)).sort();
+    if (!filtered.length) { if (noMatch) noMatch.style.display = 'block'; return; }
     if (noMatch) noMatch.style.display = 'none';
-    filtered.forEach(f => {
-      const item = document.createElement('div');
-      item.className = 'file-item';
-      item.textContent = f;
-      item.addEventListener('click', () => onOpen(f, item));
-      container.appendChild(item);
-    });
+    filtered.forEach(f => container.appendChild(fileRow(f, onOpen, true)));
     return;
   }
-
   if (noMatch) noMatch.style.display = 'none';
 
   if (!files.length) {
-    container.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px">No .mmd files found.</div>';
+    container.innerHTML = '<div class="file-empty">No .mmd files found.</div>';
     return;
   }
 
   const tree = buildTree(files);
+  if (!treeSeeded) { collapsedDirs.clear(); seedCollapsed(tree, ''); treeSeeded = true; }
 
-  function renderNode(node, depth, pathPrefix) {
-    const dirs = Object.keys(node.dirs).sort();
-    const nodeFiles = [...node.files].sort();
+  // Files at each level first, then subfolders — uniform at every depth, so root files
+  // sit at the top and every folder's contents are clearly enclosed below it.
+  const renderLevel = (node, into, prefix) => {
+    [...node.files].sort().forEach(f => into.appendChild(fileRow(f, onOpen, false)));
+    Object.keys(node.dirs).sort().forEach(dir => {
+      const full = prefix ? prefix + '/' + dir : dir;
+      const child = node.dirs[dir];
+      const isOpen = !collapsedDirs.has(full);
+      const count = filesUnder(child).length;
 
-    for (const dir of dirs) {
-      const fullPath = pathPrefix ? pathPrefix + '/' + dir : dir;
-      const isOpen = !collapsedDirs.has(fullPath);
-      const folderEl = document.createElement('div');
-      folderEl.className = 'file-folder';
-      folderEl.style.paddingLeft = (depth * 14) + 'px';
-      folderEl.innerHTML =
+      const section = document.createElement('div');
+      section.className = 'folder-section';
+      const header = document.createElement('div');
+      header.className = 'folder-header';
+      header.innerHTML =
         `<span class="folder-toggle">${isOpen ? '▾' : '▸'}</span>` +
-        `<span class="folder-name">${dir}</span>`;
-      folderEl.addEventListener('click', ev => {
-        ev.stopPropagation();
-        if (collapsedDirs.has(fullPath)) collapsedDirs.delete(fullPath);
-        else collapsedDirs.add(fullPath);
-        renderFileTree(files, container, query, onOpen);
+        `<span class="folder-icon">📁</span>` +
+        `<span class="folder-name"></span>` +
+        `<span class="folder-count">${count}</span>` +
+        `<button class="folder-openall" title="Open all ${count} file(s) in this folder as tabs">Open all</button>`;
+      header.querySelector('.folder-name').textContent = dir;
+      header.addEventListener('click', ev => {
+        if (ev.target.closest('.folder-openall')) return;
+        if (collapsedDirs.has(full)) collapsedDirs.delete(full); else collapsedDirs.add(full);
+        renderFileTree(files, container, query, onOpen, onOpenAll);
       });
-      container.appendChild(folderEl);
-      if (isOpen) renderNode(node.dirs[dir], depth + 1, fullPath);
-    }
+      header.querySelector('.folder-openall').addEventListener('click', ev => {
+        ev.stopPropagation();
+        onOpenAll(filesUnder(child));
+      });
+      section.appendChild(header);
 
-    for (const file of nodeFiles) {
-      const basename = file.split('/').pop();
-      const item = document.createElement('div');
-      item.className = 'file-item';
-      item.style.paddingLeft = (depth * 14 + (depth > 0 ? 18 : 4)) + 'px';
-      item.textContent = basename;
-      item.title = file;
-      item.addEventListener('click', () => onOpen(file, item));
-      container.appendChild(item);
-    }
-  }
+      if (isOpen) {
+        const body = document.createElement('div');
+        body.className = 'folder-body';
+        renderLevel(child, body, full);
+        section.appendChild(body);
+      }
+      into.appendChild(section);
+    });
+  };
 
-  renderNode(tree, 0, '');
+  renderLevel(tree, container, '');
 }
 
 export function initModal() {
@@ -142,6 +168,7 @@ export function initModal() {
   function resetFilePicker() {
     cachedFiles = [];
     isOpening = false;
+    treeSeeded = false;          // re-collapse folders to defaults on each fresh open
     const panel = document.getElementById('fileListPanel');
     if (panel) { panel.style.display = 'none'; panel.innerHTML = ''; }
     const search = document.getElementById('fileSearchInput');
@@ -178,6 +205,21 @@ export function initModal() {
     }
   }
 
+  // Open every file in a folder — the first adopts the pending tab, the rest open as
+  // new tabs (loadIntoCurrentTab routes to a new tab once the current one has a file).
+  async function openAllFiles(list) {
+    list = [...new Set(list)].sort();
+    if (!list.length) return;
+    if (list.length > 20 && !window.confirm(`Open all ${list.length} files as tabs?`)) return;
+    showFileError('');
+    let ok = 0;
+    for (const name of list) {
+      try { const text = await serverRead(name); loadIntoCurrentTab(name, text); ok++; }
+      catch (e) { /* skip a file that can't be read, keep going */ }
+    }
+    document.getElementById('statusText').textContent = `Opened ${ok} of ${list.length} file(s).`;
+  }
+
   document.getElementById('modalOpenBtn').addEventListener('click', async () => {
     const panel = document.getElementById('fileListPanel');
     if (panel.style.display === 'block') { panel.style.display = 'none'; showFileError(''); return; }
@@ -191,15 +233,15 @@ export function initModal() {
       searchInput.style.display = 'block';
       searchInput.value = '';
     }
-    renderFileTree(cachedFiles, panel, '', openFile);
+    renderFileTree(cachedFiles, panel, '', openFile, openAllFiles);
     if (searchInput) {
-      searchInput.oninput = () => renderFileTree(cachedFiles, panel, searchInput.value, openFile);
+      searchInput.oninput = () => renderFileTree(cachedFiles, panel, searchInput.value, openFile, openAllFiles);
     }
   });
 
   document.getElementById('fileSearchInput').addEventListener('input', function() {
     const panel = document.getElementById('fileListPanel');
-    if (panel.style.display === 'block') renderFileTree(cachedFiles, panel, this.value, openFile);
+    if (panel.style.display === 'block') renderFileTree(cachedFiles, panel, this.value, openFile, openAllFiles);
   });
 
   function populateFolderSelect(files) {

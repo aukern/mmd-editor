@@ -31,6 +31,19 @@ function findSourceLine(token) {
   return -1;
 }
 
+// The element currently highlighted from a click, so the next click can clear it.
+let vmHighlighted = null;
+function clearClickHighlight() {
+  if (vmHighlighted) { vmHighlighted.classList.remove('vm-click-highlight'); vmHighlighted = null; }
+}
+// Glow the group the user actually clicked, so it's obvious what got selected — a
+// mis-click no longer silently jumps the source to something you didn't mean to hit.
+function highlightClicked(target) {
+  clearClickHighlight();
+  const g = (target.closest && target.closest('g')) || null;
+  if (g) { g.classList.add('vm-click-highlight'); vmHighlighted = g; }
+}
+
 // Attach the click-to-locate handler once (the #viewPan element persists across
 // re-renders; only its innerHTML changes).
 export function initViewmode() {
@@ -38,6 +51,7 @@ export function initViewmode() {
   if (!pan) return;
   pan.addEventListener('click', ev => {
     if (!S.viewMode) return;
+    highlightClicked(ev.target);           // always show what was clicked
     const tok = tokenFromEvent(ev);
     if (!tok) return;
     const line = findSourceLine(tok);
@@ -138,6 +152,7 @@ export function exitViewMode() {
   const wasView = S.viewMode;
   S.viewMode = false;
   S.rawText = '';
+  clearClickHighlight();
   document.getElementById('canvasWrap').classList.remove('view-mode');
   const pan = document.getElementById('viewPan'); if (pan) pan.innerHTML = '';
   if (wasView) applyModeUI(false);

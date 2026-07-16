@@ -3,6 +3,23 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.3.0] — 2026-07-09
+
+### File picker — revamped
+- **Clear folder grouping.** Root files now sit at the top; each folder is a collapsible
+  section below them with a guide line enclosing its contents, so it's always obvious
+  which files belong to a folder and which are in the root.
+- **Scales.** Folders are collapsed by default and show a file-count badge, so the list
+  stays compact whether you have five files or hundreds. Search still cuts across all of
+  them.
+- **Open a whole folder.** Each folder has an **Open all** button that opens every `.mmd`
+  in it (recursively) as tabs — or click a single file to open just that one.
+
+### View mode
+- **Clicking a view-only diagram now highlights what you clicked** (a gold glow), so when
+  the source jumps you can see exactly which element it matched — no more guessing whether
+  you hit the thing you meant to.
+
 ## [0.2.2] — 2026-07-09
 
 ### Fixes
