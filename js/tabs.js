@@ -76,16 +76,51 @@ export function restoreTabState(tab) {
   if (applyTransform) applyTransform();
 }
 
+// The folder a tab belongs to (its file's directory; '' for root or unsaved tabs).
+// Folders are the only tab grouping for now — no manual groups.
+function tabFolder(tab) {
+  if (!tab || !tab.filename) return '';
+  const i = tab.filename.lastIndexOf('/');
+  return i >= 0 ? tab.filename.slice(0, i) : '';
+}
+
+// Drag-reorder state (only within the same folder group).
+let dragTabIdx = null, dragTabFolder = null;
+
+function reorderTab(fromIdx, toIdx) {
+  if (fromIdx === toIdx) return;
+  const active = S.activeTabIdx >= 0 ? S.tabs[S.activeTabIdx] : null;
+  const [t] = S.tabs.splice(fromIdx, 1);
+  const at = toIdx > fromIdx ? toIdx - 1 : toIdx;
+  S.tabs.splice(at, 0, t);
+  if (active) S.activeTabIdx = S.tabs.indexOf(active);
+  renderTabBar();
+}
+
 export function renderTabBar() {
   const bar = document.getElementById('tabBar');
   bar.innerHTML = '';
+
+  // Group tabs by folder; group order follows first appearance in the tab list.
+  const groups = [];
+  const byFolder = new Map();
   S.tabs.forEach((tab, idx) => {
+    const f = tabFolder(tab);
+    let grp = byFolder.get(f);
+    if (!grp) { grp = { folder: f, items: [] }; byFolder.set(f, grp); groups.push(grp); }
+    grp.items.push({ tab, idx });
+  });
+
+  const clearDropMarks = () => bar.querySelectorAll('.tab.drop-before,.tab.drop-after')
+    .forEach(t => t.classList.remove('drop-before', 'drop-after'));
+
+  const makeTab = (tab, idx, folder) => {
     const el = document.createElement('div');
     el.className = 'tab' + (idx === S.activeTabIdx ? ' active' : '');
+    el.draggable = true;
     const label = document.createElement('span');
     label.className = 'tab-label';
-    const basename = tab.filename ? tab.filename.split('/').pop() : 'Untitled';
-    label.textContent = basename;
+    label.textContent = tab.filename ? tab.filename.split('/').pop() : 'Untitled';
     label.title = tab.filename || 'Untitled';
     const close = document.createElement('span');
     close.className = 'tab-close';
@@ -93,9 +128,47 @@ export function renderTabBar() {
     close.title = 'Close tab';
     close.addEventListener('click', ev => { ev.stopPropagation(); closeTab(idx); });
     el.addEventListener('click', () => { if (idx !== S.activeTabIdx) switchTab(idx); });
+    // Reorder by dragging — only within the same folder group.
+    el.addEventListener('dragstart', ev => {
+      dragTabIdx = idx; dragTabFolder = folder; el.classList.add('dragging');
+      ev.dataTransfer.effectAllowed = 'move';
+      try { ev.dataTransfer.setData('text/plain', String(idx)); } catch (e) {}
+    });
+    el.addEventListener('dragend', () => { el.classList.remove('dragging'); dragTabIdx = null; dragTabFolder = null; clearDropMarks(); });
+    el.addEventListener('dragover', ev => {
+      if (dragTabIdx === null || folder !== dragTabFolder) return;   // same folder only
+      ev.preventDefault();
+      const r = el.getBoundingClientRect();
+      const after = ev.clientX > r.left + r.width / 2;
+      el.classList.toggle('drop-after', after);
+      el.classList.toggle('drop-before', !after);
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drop-before', 'drop-after'));
+    el.addEventListener('drop', ev => {
+      if (dragTabIdx === null || folder !== dragTabFolder) return;
+      ev.preventDefault();
+      const r = el.getBoundingClientRect();
+      const after = ev.clientX > r.left + r.width / 2;
+      reorderTab(dragTabIdx, after ? idx + 1 : idx);
+    });
     el.appendChild(label); el.appendChild(close);
-    bar.appendChild(el);
+    return el;
+  };
+
+  groups.forEach(grp => {
+    const gEl = document.createElement('div');
+    gEl.className = 'tab-group' + (grp.folder ? '' : ' rootgroup');
+    if (grp.folder) {
+      const lbl = document.createElement('span');
+      lbl.className = 'tab-group-label';
+      lbl.textContent = grp.folder.split('/').pop();   // leaf folder name
+      lbl.title = grp.folder;
+      gEl.appendChild(lbl);
+    }
+    grp.items.forEach(({ tab, idx }) => gEl.appendChild(makeTab(tab, idx, grp.folder)));
+    bar.appendChild(gEl);
   });
+
   const addBtn = document.createElement('div');
   addBtn.className = 'tab-add';
   addBtn.textContent = '+';

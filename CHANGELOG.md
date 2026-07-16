@@ -3,6 +3,19 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.4.0] — 2026-07-09
+
+### Tabs
+- **Tabs are grouped by their folder**, with the folder name as a group label, so open
+  files from the same folder read as a set. Root/unsaved tabs stay ungrouped.
+- **Drag to reorder tabs within a group.** Reordering is kept inside a folder (moving a
+  tab across folders isn't allowed — folders are the only grouping for now).
+
+### View mode
+- **Better click highlight.** Clicking a view-only diagram now draws a crisp selection box
+  around the exact label you clicked instead of a soft glow around the whole node — no more
+  blurry text, and it's clear precisely what the source jumped to.
+
 ## [0.3.0] — 2026-07-09
 
 ### File picker — revamped

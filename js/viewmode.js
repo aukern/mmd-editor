@@ -31,17 +31,41 @@ function findSourceLine(token) {
   return -1;
 }
 
-// The element currently highlighted from a click, so the next click can clear it.
+// A selection rectangle drawn behind the clicked label, cleared on the next click.
+const SVGNS = 'http://www.w3.org/2000/svg';
 let vmHighlighted = null;
 function clearClickHighlight() {
-  if (vmHighlighted) { vmHighlighted.classList.remove('vm-click-highlight'); vmHighlighted = null; }
+  if (vmHighlighted && vmHighlighted.parentNode) vmHighlighted.parentNode.removeChild(vmHighlighted);
+  vmHighlighted = null;
 }
-// Glow the group the user actually clicked, so it's obvious what got selected — a
-// mis-click no longer silently jumps the source to something you didn't mean to hit.
+// Pick the most specific labelled thing at the click — prefer the text/label element so
+// we frame the text you're pointing at, not the whole node box.
+function clickTarget(target) {
+  if (target.tagName === 'tspan') return target.parentNode;
+  if (target.tagName === 'text') return target;
+  const g = target.closest && target.closest('g');
+  if (g) { const lbl = g.querySelector('text, .nodeLabel, .edgeLabel, foreignObject'); if (lbl) return lbl; }
+  return target;
+}
+// Draw a crisp selection rectangle behind the clicked label (over the shape, under the
+// text) — no blur, and it points at exactly what was clicked.
 function highlightClicked(target) {
   clearClickHighlight();
-  const g = (target.closest && target.closest('g')) || null;
-  if (g) { g.classList.add('vm-click-highlight'); vmHighlighted = g; }
+  const el = clickTarget(target);
+  if (!el || typeof el.getBBox !== 'function' || !el.parentNode) return;
+  let bb; try { bb = el.getBBox(); } catch (e) { return; }
+  if (!bb || (!bb.width && !bb.height)) return;
+  const pad = 2;
+  const rect = document.createElementNS(SVGNS, 'rect');
+  rect.setAttribute('x', bb.x - pad); rect.setAttribute('y', bb.y - pad);
+  rect.setAttribute('width', bb.width + 2 * pad); rect.setAttribute('height', bb.height + 2 * pad);
+  rect.setAttribute('rx', 3);
+  rect.setAttribute('class', 'vm-click-rect');
+  const tf = el.getAttribute && el.getAttribute('transform');
+  if (tf) rect.setAttribute('transform', tf);
+  rect.style.pointerEvents = 'none';
+  el.parentNode.insertBefore(rect, el);
+  vmHighlighted = rect;
 }
 
 // Attach the click-to-locate handler once (the #viewPan element persists across
