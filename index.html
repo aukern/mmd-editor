@@ -75,6 +75,9 @@
   <button id="deleteBtn" class="danger" title="Delete (Del)">🗑</button>
   <button id="arrangeBtn" title="Auto-arrange">↻</button>
   <div class="sep"></div>
+  <button id="reviewToggleBtn" title="Highlight what changed since you opened this diagram (toggle)">👁 Changes</button>
+  <button id="reviewResetBtn" title="Mark current version as reviewed — clears the change highlights" style="display:none">✓ Reviewed</button>
+  <div class="sep"></div>
   <button id="historyBtn" title="Version history">🕐 History</button>
   <!-- Export dropdown -->
   <div class="export-dropdown" id="exportDropdownWrap">
@@ -96,7 +99,7 @@
       <div class="modal-card" id="modalCard">
         <img class="modal-icon" src="assets/logo.svg" alt="">
         <h2>Mermaid Editor</h2>
-        <div class="modal-version">v0.5.2</div>
+        <div class="modal-version">v0.6.0</div>
         <p id="modalSubtitle">Open an existing .mmd file or create a new one. All changes auto-save.</p>
         <button class="modal-btn primary" id="modalOpenBtn">Open existing file…</button>
         <input type="text" id="fileSearchInput" placeholder="Search files…" style="display:none">
@@ -139,6 +142,7 @@
         <g id="nodesLayer"></g>
         <g id="portsLayer"></g>
         <g id="overlayLayer"></g>
+        <g id="reviewLayer"></g>
       </g>
     </svg>
     <!-- View-only render layer for non-flowchart diagrams (Mermaid-rendered SVG) -->

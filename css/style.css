@@ -66,6 +66,26 @@ svg#canvas{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visibl
 #viewLayer .vm-error{position:absolute;top:16px;left:16px;right:16px;color:#e06c6c;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;}
 /* Crisp selection box behind the clicked label in a view-only diagram (no blur). */
 #viewLayer .vm-click-rect{fill:rgba(210,183,77,.22);stroke:var(--accent2);stroke-width:1;}
+
+/* ── Change-review overlay ── */
+#reviewLayer{pointer-events:none;}
+.rv-outline{fill:none;stroke-width:2.5;stroke-dasharray:6,4;}
+.rv-added .rv-outline{stroke:#3fb950;}
+.rv-changed .rv-outline{stroke:#d2b74d;}
+.rv-badge-text{font-size:9px;font-weight:700;fill:#12130f;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;text-transform:uppercase;letter-spacing:.03em;}
+.rv-badge-added .rv-badge-bg{fill:#3fb950;}
+.rv-badge-changed .rv-badge-bg{fill:#d2b74d;}
+.rv-badge-removed .rv-badge-bg{fill:#e06c6c;}
+.rv-oldlabel{fill:#e06c6c;font-size:10px;text-decoration:line-through;font-family:"SF Mono",Menlo,Consolas,monospace;}
+.rv-ghost-box{fill:rgba(224,108,108,.10);stroke:#e06c6c;stroke-width:1.5;stroke-dasharray:5,4;}
+.rv-ghost-label{fill:#e06c6c;font-size:12px;text-decoration:line-through;}
+.rv-ghost-edge{stroke:#e06c6c;stroke-width:2;stroke-dasharray:5,4;opacity:.7;}
+/* View mode (Mermaid SVG hijack): glow the changed elements crisply, no blur */
+#viewLayer .rv-vhl rect,#viewLayer .rv-vhl path,#viewLayer .rv-vhl circle,#viewLayer .rv-vhl ellipse,#viewLayer .rv-vhl polygon,#viewLayer .rv-vhl line{stroke:#d2b74d !important;stroke-width:3px !important;}
+#viewLayer .rv-vhl text,#viewLayer .rv-vhl tspan{fill:#d2b74d !important;font-weight:700 !important;}
+.review-chip{position:absolute;top:10px;right:12px;z-index:210;background:rgba(26,27,32,.92);border:1px solid var(--accent2);border-radius:8px;padding:5px 11px;font-size:12px;color:var(--accent2);display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;}
+.review-chip .rc-dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);flex-shrink:0;}
+#reviewToggleBtn.active{background:var(--accent);border-color:var(--accent);color:#1a1600;}
 /* Controls disabled while in view mode */
 #toolbar .vm-disabled{opacity:.35;pointer-events:none;}
 /* Pan toggle in view mode: shown active (pan is forced on) but not clickable */

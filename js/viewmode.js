@@ -139,6 +139,8 @@ export async function renderViewDiagram(text) {
   if (err || !svg) { pan.innerHTML = `<div class="vm-error">Diagram error:\n${err || 'empty render'}</div>`; return; }
   pan.innerHTML = svg;
   fitViewDiagram();
+  // Re-apply the change overlay onto the freshly rendered SVG.
+  if (window._editorReview && window._editorReview.applyView) window._editorReview.applyView();
 }
 
 export function fitViewDiagram() {

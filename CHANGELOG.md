@@ -3,6 +3,25 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.6.0] — 2026-07-09
+
+### Visual change review (new — first cut)
+- A **👁 Changes** toggle in the toolbar highlights **what changed on the diagram itself**,
+  so you can *see* the differences instead of re-reading everything. The baseline is the
+  diagram as it was when you opened it / turned review on / hit **✓ Reviewed**; it's
+  content-based, so if the AI reverts an edit the highlight simply disappears.
+  - **Flowcharts:** in-place overlay — added nodes/edges get a `NEW` outline, changed ones
+    get a `changed` outline with the previous label shown struck-through, and deleted nodes
+    appear as red struck-through **ghosts** placed among their old neighbours (we own the
+    flowchart layout, so nothing has to move).
+  - **All other diagram types (sequence, ER, state, class…):** the rendered Mermaid SVG is
+    hijacked and the changed/added elements are **glowed in place**, with a small
+    `N changed · N removed` chip (deletions can't be drawn where they were, since we don't
+    control Mermaid's layout — that's the one honest limit).
+- Toggle it off anytime. This is a first version — the non-flowchart highlighting is
+  best-effort (matches elements by their label text); expect it to catch most changes, not
+  every last one.
+
 ## [0.5.2] — 2026-07-09
 
 ### Fixes

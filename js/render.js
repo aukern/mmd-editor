@@ -391,6 +391,7 @@ export function render() {
     });
     edgesLayer.appendChild(hit);
     const line = makeSVG('line');
+    line.setAttribute('data-edge-id', e.id);
     line.setAttribute('x1',p1.x); line.setAttribute('y1',p1.y); line.setAttribute('x2',p2.x); line.setAttribute('y2',p2.y);
     line.setAttribute('stroke', isSel ? '#d2b74d' : '#c7c7d1');
     line.setAttribute('stroke-width', style.thick ? (isSel?5:4) : (isSel?2.5:1.5));
@@ -416,6 +417,7 @@ export function render() {
     const isSel = (S.selected && S.selected.type==='node' && S.selected.id===n.id) || S.multiSelect.has(n.id);
     const g = makeSVG('g');
     g.setAttribute('class', 'node' + (isSel ? ' selected' : ''));
+    g.setAttribute('data-node-id', n.id);
     g.setAttribute('transform', `translate(${n.x},${n.y})`);
     g.style.cursor = S.connectMode ? 'crosshair' : 'grab';
     const sp = shapeEl(n,w,h); g.appendChild(sp);
@@ -487,4 +489,5 @@ export function render() {
   applyTransform();
   if (window._editorSource && window._editorSource.syncHighlight) window._editorSource.syncHighlight();
   if (window._editorDiff && window._editorDiff.update) window._editorDiff.update();
+  if (window._editorReview && window._editorReview.applyFlowchart) window._editorReview.applyFlowchart();
 }
