@@ -1,5 +1,5 @@
 import { S } from './state.js';
-import { buildFileContent, extractSnapshotsFromText, refreshHistoryPanel } from './history.js';
+import { buildFileContent, extractSnapshotsFromText, refreshHistoryPanel, recordSnapshot } from './history.js';
 
 export async function serverRead(name) {
   const r = await fetch('/api/read?file=' + encodeURIComponent(name));
@@ -94,6 +94,8 @@ async function autoReloadFromDisk(filename) {
       const snaps = extractSnapshotsFromText(text);
       if (snaps.length) S.snapshots = snaps;
       loadFromMermaidText(text, true);
+      // Content arrived from outside the editor — attribute it to the AI on the timeline.
+      recordSnapshot('ai');
     }
     const mtime = await serverMtime(filename);
     if (mtime !== null) S.lastKnownMtime = mtime;
@@ -130,6 +132,8 @@ export async function reloadActiveFromDisk() {
     const snaps = extractSnapshotsFromText(text);
     if (snaps.length) S.snapshots = snaps;
     loadFromMermaidText(text, true);
+    // Changed on disk while this tab was inactive — attribute to the AI on the timeline.
+    recordSnapshot('ai');
     const mtime = await serverMtime(S.currentFilename);
     if (mtime !== null) S.lastKnownMtime = mtime;
   } catch (e) { /* stale tab; leave cached content */ }

@@ -190,6 +190,8 @@ export function switchTab(idx) {
   renderTabBar();
   const { refreshHistoryPanel } = window._editorHistory || {};
   if (refreshHistoryPanel) refreshHistoryPanel();
+  if (window._editorHistory && window._editorHistory.lockHead) window._editorHistory.lockHead();
+  if (window._editorTimeline) { window._editorTimeline.resetSelection(); window._editorTimeline.refresh(); }
   // View-mode tabs aren't followed by the live watcher while inactive — re-read from
   // disk on switch so an external (AI) edit made while it was hidden shows up.
   if (S.viewMode && S.currentFilename) {
@@ -235,8 +237,8 @@ export function openInNewTab(filename, mmdText) {
   if (loadFromMermaidText && mmdText) loadFromMermaidText(mmdText, false);
   // Keep tab.snapshots in sync after loadFromMermaidText may have replaced S.snapshots
   S.tabs[S.activeTabIdx].snapshots = S.snapshots;
-  const { takeSnapshot } = window._editorHistory || {};
-  if (takeSnapshot) takeSnapshot('Opened file');
+  const { recordFromLoad } = window._editorHistory || {};
+  if (recordFromLoad) recordFromLoad();
   const { resetBaseline } = window._editorDiff || {};
   if (resetBaseline) resetBaseline();   // diff baseline = the file we just opened
   // Opening a file must NOT trigger autosave — the regenerated mermaid text may differ
@@ -296,8 +298,8 @@ export function loadIntoCurrentTab(filename, mmdText) {
   // loadFromMermaidText may replace S.snapshots with a new array; keep tab in sync
   currentTab.snapshots = S.snapshots;
 
-  const { takeSnapshot } = window._editorHistory || {};
-  if (takeSnapshot) takeSnapshot('Opened file');
+  const { recordFromLoad } = window._editorHistory || {};
+  if (recordFromLoad) recordFromLoad();
   const { resetBaseline } = window._editorDiff || {};
   if (resetBaseline) resetBaseline();   // diff baseline = the file we just opened
   // Opening a file must NOT trigger autosave — cancel any save the snapshot scheduled.

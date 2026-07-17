@@ -28,16 +28,16 @@ MMD Editor closes that gap. It is **not a diagram-making tool and not an AI clie
 - **Mermaid is the source of truth, and it round-trips both ways.** The human sees the rendered diagram; the AI sees the exact source. Neither side works from a degraded copy — that only holds if the visual editor stays a faithful Mermaid mirror, which is the load-bearing invariant of the whole tool.
 - **Positions are never saved.** Layout is noise for an AI and bloat in the file. The `.mmd` describes *structure* — what is grouped, what is connected — and the layout engine draws it consistently every time. It also makes diffs clean: moving a box around produces no change.
 - **Workflows are what you edit; everything else you read.** Flowcharts get the full visual editor. Every other Mermaid type (ER, sequence, class, state, gantt…) opens in a live view you edit as code — because a sequence diagram and a flowchart share nothing you could meaningfully drag.
-- **Talk in diffs.** After the first share, hand your AI a git-style diff against a checkpoint you control — the change, not the whole file. Since the diff is over structure (not positions), it is signal-only.
+- **Talk in diffs.** After the first share, hand your AI a git-style diff against any version on the timeline — the change, not the whole file. Since the diff is over structure (not positions), it is signal-only.
 - **Local-first, one portable file.** A diagram *and its version history* live in a single `.mmd` you own. No account, no cloud, no lock-in.
 
 ## Features
 
 - **Visual workflow editing** — drag nodes, drag from a node's edge to connect, nested groups/subgraphs with connection ports, 19 node shapes, per-node styles and `classDef`s, multi-line labels (Shift/Alt+Enter), rubber-band select, copy/paste/duplicate, undo/redo.
 - **Editable Mermaid source, live and two-way** — type in the code panel and the diagram updates (position-preserving); select on the canvas and the matching source line highlights. Includes find-in-code.
-- **View mode for every other diagram type** — open an `erDiagram`, `sequenceDiagram`, `classDiagram`, `stateDiagram`, `gantt`, … and it renders live; edit it as code with the same autosave, history, and diff.
-- **Change-since-checkpoint diff** — a unified diff of the diagram against a checkpoint you advance yourself, so you can paste an AI *only what changed*. Undo/redo or retyping the same thing produces no diff.
-- **Version history in the file** — snapshots are stored inside the `.mmd`, so history travels with the diagram; preview and restore any point.
+- **View mode for every other diagram type** — open an `erDiagram`, `sequenceDiagram`, `classDiagram`, `stateDiagram`, `gantt`, … and it renders live; edit it as code with the same autosave, timeline, and diff.
+- **Light-git Timeline** — every version is recorded automatically and tagged **👤 You** or **🤖 AI** (in-editor edits are yours; changes arriving from disk are the AI's). Select any version to see the change it introduced as a readable diff, **📋 Copy** that diff for an AI (non-destructive), **👁 Preview** it read-only on the canvas, or **⧉ Show changes** to highlight it on the diagram. Undo/redo or retyping the same thing produces no diff.
+- **History in the file.** The timeline is stored inside the `.mmd` (`%% snap:` lines), so it travels with the diagram; preview or restore any point.
 - **Autosave**, **pan/zoom**, and **export to SVG / PNG / PDF**.
 - **Desktop app** for Linux, Windows, and macOS — or run it in the browser.
 
@@ -46,7 +46,7 @@ MMD Editor closes that gap. It is **not a diagram-making tool and not an AI clie
 Because a diagram is one portable `.mmd` text file — structure, styles, and version history all inside it — collaboration is whatever your team already uses for text, no server required:
 
 - **Version control.** Commit `.mmd` files to git. They diff cleanly (positions aren't stored), so a pull-request review of a workflow change is actually readable.
-- **File sync / hand-off.** Put them in a shared Drive/Dropbox folder, or just send the file. Whoever opens it gets the full diagram *and* its snapshot history.
+- **File sync / hand-off.** Put them in a shared Drive/Dropbox folder, or just send the file. Whoever opens it gets the full diagram *and* its timeline (with the You/AI authorship of each version).
 - **Symlink anything in.** Keep files anywhere on disk and symlink a file — or a whole folder — into the diagrams folder; a shared or synced folder works out of the box (see [Where files live](#where-files-live)).
 - **AI-mediated review.** The change-diff is a natural async review unit — "here's what I changed, thoughts?" — whether the reviewer is a teammate or an AI.
 
@@ -64,10 +64,12 @@ A zero-build, dependency-light frontend: vanilla ES modules rendered on an SVG c
 | `js/loader.js` | Orchestrates parse → layout → render; routes non-flowchart diagrams to view mode |
 | `js/viewmode.js` | Live Mermaid render for non-flowchart types; edit-as-code; click-to-locate in source |
 | `js/events.js` | All canvas interaction — drag, connect, ports, rubber-band, pan/zoom, keyboard |
-| `js/history.js` | Snapshots stored in the `.mmd` (`%% snap:` lines); preview / restore |
-| `js/file.js` | File-API client, debounced autosave, external-change watcher, rename |
+| `js/history.js` | Authored timeline stored in the `.mmd` (`%% snap:` lines) — rolling-head-by-author, preview / restore |
+| `js/file.js` | File-API client, debounced autosave, external-change watcher (tags disk edits as AI), rename |
 | `js/ui/source.js` | The live, editable Mermaid-source panel, find-in-code, source-line highlight |
-| `js/ui/diff.js` | Change-since-checkpoint diff engine + panel |
+| `js/ui/diff.js` | Readable diff engine (line/word-level, hunks, jump) reused by the timeline |
+| `js/ui/timeline.js` | The Timeline panel — authored version rows, per-version diff, Copy / Preview / Show-changes |
+| `js/ui/review.js` | On-diagram change overlay (flowchart ghosts/outlines; view-mode highlights) |
 | `electron/` | Desktop shell: the Node file-server (`server.js`) and the window/menu (`main.js`) |
 
 ## Key decisions

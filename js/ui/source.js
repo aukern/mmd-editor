@@ -26,6 +26,7 @@ function applyNow(text) {
     renderViewDiagram(text);
     countMutation();                 // schedules autosave + snapshot cadence (uses raw text)
     if (window._editorDiff && window._editorDiff.update) window._editorDiff.update();
+    if (window._editorTimeline && window._editorTimeline.refresh) window._editorTimeline.refresh();
     return;
   }
   // Skip if unchanged since the last apply, or already matching canonical output.

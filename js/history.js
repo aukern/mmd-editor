@@ -3,51 +3,99 @@ import { S } from './state.js';
 export function encodeSnap(s) { return btoa(unescape(encodeURIComponent(JSON.stringify(s)))); }
 export function decodeSnap(b) { try { return JSON.parse(decodeURIComponent(escape(atob(b)))); } catch(e) { return null; } }
 
-export function takeSnapshot(label) {
-  if (S.previewMode) return;
-  clearTimeout(S.snapshotTimer); S.pendingSnapshotLabel = null;
+// Keep the stored timeline light. Each entry is a full copy of the .mmd, so we cap the
+// number of retained points and drop the oldest once over the cap.
+const SNAP_CAP = 30;
+
+function currentMmd() {
   const { getCurrentSource } = window._editorRender || {};
-  const mmd = getCurrentSource ? getCurrentSource() : (document.getElementById('mmdOut')?.value || '');
-  if (!mmd || !mmd.trim()) return;
-  // Skip duplicate: if content identical to last snapshot, just update its label/ts instead of adding
-  if (S.snapshots.length > 0 && S.snapshots[S.snapshots.length - 1].mmd === mmd) return;
-  const ts = new Date().toISOString().slice(0,19).replace('T',' ');
-  S.snapshots.push({ts, label, mmd});
-  if (S.snapshots.length > 50) S.snapshots.shift();
+  return getCurrentSource ? getCurrentSource() : (document.getElementById('mmdOut')?.value || '');
+}
+
+function persistSnaps() {
   if (S.activeTabIdx >= 0 && S.tabs[S.activeTabIdx]) {
     S.tabs[S.activeTabIdx].snapshots = S.snapshots;
   }
   const { scheduleSave } = window._editorFile || {};
   if (scheduleSave) scheduleSave();
   refreshHistoryPanel();
+  if (window._editorTimeline && window._editorTimeline.refresh) window._editorTimeline.refresh();
 }
 
-export function scheduleSnapshot(label) {
+// One-shot lock: when set, the current head is an "as-opened / as-loaded" anchor and the
+// NEXT real change must start a fresh entry instead of rolling into it. This is what
+// preserves the state you opened with so your edits since open are always diff-able —
+// even human→(reopen)→human produces a separate entry rather than silently merging.
+let headLocked = false;
+export function lockHead() { headLocked = true; }
+
+// The heart of the "light git" timeline: rolling-head-by-author.
+//
+//   • The LAST snapshot is a rolling head that updates IN PLACE while the same author
+//     keeps editing. Consecutive same-author edits collapse into one entry.
+//   • A new entry is appended when authorship flips (human <-> ai) OR when the head is
+//     a locked "as-opened" anchor.
+//   • Idempotent: identical content to the head is a no-op (and keeps the lock, so the
+//     first genuine edit after opening still starts a fresh entry).
+//
+// author: 'human' (edits made inside the editor) | 'ai' (content arriving from disk).
+export function recordSnapshot(author) {
   if (S.previewMode) return;
-  S.pendingSnapshotLabel = label;
-  clearTimeout(S.snapshotTimer);
-  S.snapshotTimer = setTimeout(() => takeSnapshot(S.pendingSnapshotLabel || label), 1500);
+  const mmd = currentMmd();
+  if (!mmd || !mmd.trim()) return;
+  const head = S.snapshots[S.snapshots.length - 1];
+  if (head && head.mmd === mmd) return;            // no real change since head
+  const ts = new Date().toISOString().slice(0,19).replace('T',' ');
+  if (head && (head.author || 'human') === author && !headLocked) {
+    head.mmd = mmd; head.ts = ts;                  // roll the head forward
+  } else {
+    S.snapshots.push({ ts, author, mmd });         // flip, locked anchor, or very first
+    while (S.snapshots.length > SNAP_CAP) S.snapshots.shift();
+  }
+  headLocked = false;                              // a real change consumes the lock
+  persistSnaps();
 }
 
-const SNAPSHOT_EVERY = 20; // mutations before auto-snapshot
+// Called right after a file's content is (re)loaded from disk. Seeds the baseline for a
+// file that has no history yet, otherwise attributes any delta to the AI — anything that
+// arrives via disk that differs from our head was authored outside the editor (an AI
+// writing the file, or an external edit made while the app was closed). Either way the
+// resulting head is pinned as the "as-opened" anchor for this session.
+export function recordFromLoad() {
+  if (S.previewMode) return;
+  headLocked = false;                              // the load itself decides the anchor
+  if (!S.snapshots.length) recordSnapshot('human');// starting point for a fresh file
+  else recordSnapshot('ai');
+  headLocked = true;                               // pin it: next edit starts fresh
+}
+
+// Back-compat alias: every legacy call site that took a manual/auto snapshot was a
+// human action (open/new/restore/edit). Routed through the rolling-head recorder.
+export function takeSnapshot(_label) { recordSnapshot('human'); }
+
+export function scheduleSnapshot() {
+  if (S.previewMode) return;
+  clearTimeout(S.snapshotTimer);
+  S.snapshotTimer = setTimeout(() => recordSnapshot('human'), 1200);
+}
 
 export function countMutation() {
   if (S.previewMode) return;
-  S.mutationCount = (S.mutationCount || 0) + 1;
-  // Every counted mutation is a real change (add/delete/edit) — persist it.
-  // scheduleSave is debounced and no-ops when there's no open file.
+  // Every counted mutation is a real human change (add/delete/edit). Record it IMMEDIATELY
+  // (not debounced) so the current "You" row exists at once and your edits attach to it —
+  // not to the previous (e.g. AI) version. The rolling head keeps a burst as one entry.
   const { scheduleSave } = window._editorFile || {};
   if (scheduleSave) scheduleSave();
-  if (S.mutationCount >= SNAPSHOT_EVERY) {
-    S.mutationCount = 0;
-    takeSnapshot('Auto');
-  }
+  recordSnapshot('human');
 }
 
 export function extractSnapshotsFromText(text) {
   const lines = text.split('\n');
   const snaps = [];
-  lines.forEach(l => { const m = l.match(/^%% snap:(.+)$/); if(m){const s=decodeSnap(m[1]);if(s)snaps.push(s);} });
+  lines.forEach(l => {
+    const m = l.match(/^%% snap:(.+)$/);
+    if (m) { const s = decodeSnap(m[1]); if (s) { if (!s.author) s.author = 'human'; snaps.push(s); } }
+  });
   return snaps;
 }
 
@@ -63,6 +111,29 @@ export function buildFileContent() {
 }
 
 let selectedSnapIndex = -1;
+
+// Render a snapshot onto the canvas read-only, entering preview mode (saving the live
+// state so it can be restored). Switching between snapshots while already previewing
+// reuses the saved state. Used by both the History panel and the Timeline panel.
+export function enterPreviewOf(mmd, labelText) {
+  if (!S.previewMode) {
+    S.previewSaved = {
+      nodes: S.nodes.map(n => ({...n, style: n.style ? {...n.style} : null, classes: [...(n.classes||[])]})),
+      edges: S.edges.map(e => ({...e})),
+      groups: S.groups.map(g => ({...g})),
+      classDefs: JSON.parse(JSON.stringify(S.classDefs)),
+      direction: S.direction,
+      zoom: S.zoom, panX: S.panX, panY: S.panY,
+      viewMode: S.viewMode, rawText: S.rawText,
+    };
+    S.previewMode = true;
+    document.getElementById('canvasWrap').classList.add('preview-mode');
+    document.getElementById('previewBanner').style.display = 'flex';
+  }
+  const { loadFromMermaidText } = window._editorLoad || {};
+  if (loadFromMermaidText) loadFromMermaidText(mmd, true);
+  if (labelText) document.getElementById('statusText').textContent = labelText;
+}
 
 export function refreshHistoryPanel() {
   const list = document.getElementById('historyList');
@@ -81,30 +152,14 @@ export function refreshHistoryPanel() {
   rev.forEach((s, i) => {
     const item = document.createElement('div');
     item.className = 'hp-item';
-    item.innerHTML = `<div class="hp-ts">${s.ts}</div><div class="hp-label">${s.label}</div><div class="hp-hint">(${s.mmd.length} chars)</div>`;
+    const who = (s.author || 'human') === 'ai' ? '🤖 AI' : '👤 You';
+    item.innerHTML = `<div class="hp-ts">${s.ts}</div><div class="hp-label">${who}</div><div class="hp-hint">(${s.mmd.length} chars)</div>`;
     item.addEventListener('click', () => {
       document.querySelectorAll('.hp-item').forEach(el => el.classList.remove('selected'));
       item.classList.add('selected');
       selectedSnapIndex = S.snapshots.length - 1 - i;
-      // Save state only on first preview entry; switching snapshots reuses saved state
-      if (!S.previewMode) {
-        S.previewSaved = {
-          nodes: S.nodes.map(n => ({...n, style: n.style ? {...n.style} : null, classes: [...(n.classes||[])]})),
-          edges: S.edges.map(e => ({...e})),
-          groups: S.groups.map(g => ({...g})),
-          classDefs: JSON.parse(JSON.stringify(S.classDefs)),
-          direction: S.direction,
-          zoom: S.zoom, panX: S.panX, panY: S.panY,
-          viewMode: S.viewMode, rawText: S.rawText,
-        };
-        S.previewMode = true;
-        document.getElementById('canvasWrap').classList.add('preview-mode');
-        document.getElementById('previewBanner').style.display = 'flex';
-      }
-      // Load snapshot onto canvas
-      const { loadFromMermaidText } = window._editorLoad || {};
-      if (loadFromMermaidText) loadFromMermaidText(s.mmd, true);
-      document.getElementById('statusText').textContent = `Preview: "${s.label}" — restore or cancel via banner`;
+      const who = (s.author || 'human') === 'ai' ? 'AI' : 'You';
+      enterPreviewOf(s.mmd, `Preview: ${who} · ${s.ts} — restore or cancel via banner`);
     });
     list.appendChild(item);
   });
@@ -179,12 +234,5 @@ export function initHistoryPanel() {
     if (!panel.classList.contains('open')) return;
     if (panel.contains(ev.target) || ev.target.id === 'historyBtn') return;
     panel.classList.remove('open');
-  });
-
-  document.getElementById('snapshotBtn').addEventListener('click', ev => {
-    ev.stopPropagation();
-    if (S.previewMode) return;
-    takeSnapshot('Manual');
-    document.getElementById('statusText').textContent = '📷 Snapshot saved.';
   });
 }

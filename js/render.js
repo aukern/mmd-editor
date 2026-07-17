@@ -489,5 +489,6 @@ export function render() {
   applyTransform();
   if (window._editorSource && window._editorSource.syncHighlight) window._editorSource.syncHighlight();
   if (window._editorDiff && window._editorDiff.update) window._editorDiff.update();
+  if (window._editorTimeline && window._editorTimeline.refresh) window._editorTimeline.refresh();
   if (window._editorReview && window._editorReview.applyFlowchart) window._editorReview.applyFlowchart();
 }

@@ -1,6 +1,5 @@
 import { S } from '../state.js';
 import { serverList, serverRead, serverWrite, serverMtime } from '../file.js';
-import { extractSnapshotsFromText, refreshHistoryPanel, takeSnapshot } from '../history.js';
 import { openInNewTab, newTab, renderTabBar, loadIntoCurrentTab, syncModal } from '../tabs.js';
 
 export function closeModal() {

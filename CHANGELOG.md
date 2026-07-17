@@ -3,6 +3,37 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.7.0] — 2026-07-17
+
+### Light-git timeline (replaces snapshots, History, checkpoint diff, and the change overlay)
+
+The four overlapping systems — inline snapshots, the History panel, the "Changes since
+checkpoint" diff, and the 👁 Changes overlay — are unified into one **Timeline** panel in
+the sidebar. Everything is anchored to explicit, authored snapshots, which also fixes the
+old overlay's drifting-baseline flakiness.
+
+- **Authored, rolling history.** Every version is tagged **👤 You** or **🤖 AI** and stored
+  in the `.mmd` (so it travels with the file). Consecutive edits by the same author collapse
+  into one rolling entry; a new entry starts when authorship flips (you ↔ AI). In-editor
+  edits are **you**; content arriving from disk (an AI writing the file, or an external edit
+  while the app was closed) is **the AI**. History is capped (newest ~30) to keep files light.
+- **The as-opened state is preserved.** Opening a file pins an anchor so your edits since
+  opening always show as a diff — they never silently merge into the version you opened.
+- **Timeline panel.** Newest-at-top rows with author, relative time, and a `+a −d` stat.
+  Selecting a version shows the change *that version introduced* (predecessor → it), labeled
+  by its author — so your edits read as **👤 You changed this version**, the AI's as **🤖 AI**.
+  The newest row (your current work) is selected by default.
+- **📋 Copy for AI** copies the selected version's change as a unified diff — now
+  **non-destructive** (no checkpoints to advance or undo).
+- **👁 Preview** renders any past version read-only on the canvas (gold border + banner;
+  restore or cancel from the banner).
+- **⧉ Show changes** highlights that version's change *on the diagram* (in-place ghosts and
+  outlines for flowcharts). It's anchored to the selected version — a **stable baseline** —
+  and **auto-updates** as you switch versions.
+- The manual 📷 snapshot button is gone (history records automatically); `Ctrl`+`S` is now
+  just **Save**. The toolbar's 👁 Changes / ✓ Reviewed and 🕐 History buttons are retired —
+  it all lives in the Timeline now.
+
 ## [0.6.3] — 2026-07-09
 
 ### Change-review fixes
@@ -182,4 +213,5 @@ First public release.
 - Installers for Linux (AppImage, deb), Windows (nsis, portable), and macOS (universal dmg),
   published from a tag via GitHub Actions.
 
+[0.7.0]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.0
 [0.1.0]: https://github.com/aukern/mmd-editor/releases/tag/v0.1.0

@@ -1,6 +1,5 @@
 import { S } from '../state.js';
 import { exportSVG, exportPNG, exportPDF } from '../export.js';
-import { takeSnapshot } from '../history.js';
 import { doAutoSave } from '../file.js';
 
 function closeAllMenus() {
@@ -56,7 +55,7 @@ export function buildMenuBar() {
           if (window._editorModal && window._editorModal.resetFilePicker) window._editorModal.resetFilePicker();
           document.getElementById('modalOpenBtn').click();
         }},
-        { label: 'Save Snapshot', shortcut: 'Ctrl+S', action: () => { takeSnapshot('Manual'); doAutoSave(); document.getElementById('statusText').textContent='Snapshot saved.'; }},
+        { label: 'Save', shortcut: 'Ctrl+S', action: () => { doAutoSave(); document.getElementById('statusText').textContent='Saved.'; }},
         { label: 'Rename File', action: () => { document.getElementById('filenameDisplay').dispatchEvent(new MouseEvent('dblclick')); }},
         { label: '-' },
         { label: 'Close Tab', action: () => { const { closeTab } = window._editorTabs||{}; if(closeTab && S.activeTabIdx>=0) closeTab(S.activeTabIdx); }},

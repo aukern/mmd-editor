@@ -12,8 +12,9 @@ diagram text instead of a screenshot.
 - Editable Mermaid source, live two-way with the canvas, plus find-in-code.
 - View mode for every other Mermaid diagram type (erDiagram, sequence, class,
   state, gantt, …): live render + edit-as-code.
-- Change-since-checkpoint diff — send the AI only what changed, not the whole file.
-- Version history (snapshots stored in the `.mmd`), autosave, undo/redo.
+- Light-git Timeline — authored (You/AI) version history stored in the `.mmd`, with a
+  readable per-version diff, Copy-for-AI, Preview, and an on-diagram Show-changes overlay.
+- Autosave, undo/redo.
 - Export SVG / PNG / PDF.
 - Desktop app (Electron) with installers for Linux, Windows, and macOS.
 

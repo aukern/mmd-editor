@@ -133,6 +133,19 @@ function renderDiff(container, diffText) {
   return anchors;
 }
 
+// Reusable readable-diff renderer for any before→after pair (used by the timeline panel).
+// Renders into `container` and returns { anchors, adds, dels } — anchors are the per-hunk
+// jump targets. No dependency on the checkpoint state.
+export function renderReadableDiff(container, before, after) {
+  const diff = unifiedDiff(before || '', after || '');
+  container.innerHTML = '';
+  if (!diff) { container.innerHTML = '<div class="ctx-empty">No changes.</div>'; return { anchors: [], adds: 0, dels: 0 }; }
+  const anchors = renderDiff(container, diff);
+  const adds = diff.split('\n').filter(l => l[0] === '+').length;
+  const dels = diff.split('\n').filter(l => l[0] === '-').length;
+  return { anchors, adds, dels, text: diff };
+}
+
 function updateJumpInfo() {
   const info = document.getElementById('diffJumpInfo');
   const n = diffAnchors.length;

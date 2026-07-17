@@ -70,15 +70,13 @@
   <div class="sep"></div>
   <button id="panModeBtn" title="Toggle pan mode — drag empty canvas to pan instead of select (Ctrl inverts)">🖐 Pan</button>
   <button id="snapGridBtn" title="Toggle grid snap (Alt+drag also snaps)">⊞ Grid</button>
-  <button id="snapshotBtn" title="Save snapshot (Ctrl+S)">📷</button>
   <div class="sep"></div>
   <button id="deleteBtn" class="danger" title="Delete (Del)">🗑</button>
   <button id="arrangeBtn" title="Auto-arrange">↻</button>
-  <div class="sep"></div>
-  <button id="reviewToggleBtn" title="Highlight what changed since you opened this diagram (toggle)">👁 Changes</button>
-  <button id="reviewResetBtn" title="Mark current version as reviewed — clears the change highlights" style="display:none">✓ Reviewed</button>
-  <div class="sep"></div>
-  <button id="historyBtn" title="Version history">🕐 History</button>
+  <!-- Change-review + history now live in the sidebar "Timeline" panel. These are kept
+       (hidden) so their existing wiring/preview machinery stays intact. -->
+  <button id="reviewToggleBtn" style="display:none">👁 Changes</button>
+  <button id="historyBtn" style="display:none">🕐 History</button>
   <!-- Export dropdown -->
   <div class="export-dropdown" id="exportDropdownWrap">
     <button class="export-dropdown-btn" id="exportDropdownBtn" title="Export">⬇ Export ▾</button>
@@ -99,7 +97,7 @@
       <div class="modal-card" id="modalCard">
         <img class="modal-icon" src="assets/logo.svg" alt="">
         <h2>Mermaid Editor</h2>
-        <div class="modal-version">v0.6.3</div>
+        <div class="modal-version">v0.7.0</div>
         <p id="modalSubtitle">Open an existing .mmd file or create a new one. All changes auto-save.</p>
         <button class="modal-btn primary" id="modalOpenBtn">Open existing file…</button>
         <input type="text" id="fileSearchInput" placeholder="Search files…" style="display:none">
@@ -182,21 +180,26 @@
       </div>
     </div>
 
-    <div class="sb-section" id="diffPanel">
-      <div class="sb-head"><span class="sb-title">Changes since checkpoint (diff)</span>
+    <div class="sb-section" id="timelinePanel">
+      <div class="sb-head"><span class="sb-title">Timeline</span>
         <span class="diff-nav" style="margin-left:auto">
-          <button id="diffPrevBtn" title="Previous change">▲</button>
-          <span id="diffJumpInfo" class="hint"></span>
-          <button id="diffNextBtn" title="Next change">▼</button>
+          <button id="tlPrevBtn" title="Previous change">▲</button>
+          <span id="tlJumpInfo" class="hint"></span>
+          <button id="tlNextBtn" title="Next change">▼</button>
         </span>
       </div>
       <div class="sb-body">
-        <pre id="diffOut" class="diff-out"></pre>
+        <div id="tlList" class="tl-list"></div>
+        <div id="tlEmpty" class="hint" style="display:none">No history yet — your edits and AI changes appear here.</div>
+        <pre id="tlOut" class="diff-out"></pre>
         <div class="btn-row" style="margin-top:6px">
-          <button id="diffCopyBtn" title="Copy the diff and advance the checkpoint to now">Copy for AI</button>
-          <button id="diffUndoBtn" title="Revert to the previous checkpoint (undo a copy)">↩ Undo checkpoint</button>
+          <button id="tlPreviewBtn" title="View the selected version on the canvas (read-only)">👁 Preview</button>
+          <button id="tlShowBtn" title="Highlight on the diagram what changed from the selected version to now">⧉ Show changes</button>
         </div>
-        <div id="diffStatus" class="hint" style="margin-top:2px"></div>
+        <div class="btn-row" style="margin-top:5px">
+          <button id="tlCopyBtn" title="Copy the changes from the selected version to now, for the AI">📋 Copy for AI</button>
+        </div>
+        <div id="tlStatus" class="hint" style="margin-top:2px"></div>
       </div>
     </div>
 

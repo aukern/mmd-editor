@@ -163,6 +163,29 @@ textarea{width:100%;background:#16171c;color:#b8e0b8;border:1px solid var(--bord
 .diff-nav #diffJumpInfo{min-width:26px;text-align:center;font-size:10px;}
 .diff-out{scroll-behavior:smooth;}
 #diffCopyBtn.copied{background:var(--accent);border-color:var(--accent);color:#1a1600;font-weight:600;}
+#tlCopyBtn.copied{background:var(--accent);border-color:var(--accent);color:#1a1600;font-weight:600;}
+.diff-nav #tlJumpInfo{min-width:26px;text-align:center;font-size:10px;}
+/* ── Timeline (light-git) ── */
+.tl-list{max-height:180px;overflow:auto;margin-bottom:6px;display:flex;flex-direction:column;gap:3px;}
+.tl-item{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:5px;cursor:pointer;border:1px solid transparent;border-left:3px solid transparent;background:#16171c;}
+.tl-item:hover{background:#22232b;}
+.tl-item.selected{background:rgba(174,144,38,.12);border-color:var(--accent);}
+.tl-item.tl-human{border-left-color:#3f6ea5;}
+.tl-item.tl-ai{border-left-color:#9a6bce;}
+.tl-item .tl-icon{font-size:13px;line-height:1;}
+.tl-item .tl-who{font-size:11px;font-weight:600;color:#d6d6de;min-width:24px;}
+.tl-item .tl-time{font-size:10px;color:var(--muted);flex:1;}
+.tl-item .tl-stat{font-size:10px;color:var(--muted);font-family:"SF Mono",Menlo,Consolas,monospace;white-space:nowrap;}
+.tl-item.tl-ai .tl-who{color:#c9a9ea;}
+.tl-item.tl-human .tl-who{color:#a9c4ea;}
+.tl-item.previewing{outline:1px dashed var(--accent2);}
+.tl-item .tl-badge{font-size:9px;background:var(--accent2);color:#0f1014;border-radius:3px;padding:1px 4px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+#tlShowBtn.active{background:var(--accent);border-color:var(--accent);color:#1a1600;font-weight:600;}
+/* Fixed height so the diff area doesn't resize per keystroke and shove the buttons around. */
+#tlOut{height:190px;max-height:190px;}
+/* Preview mode: ring the whole canvas so it's obvious you're looking at an old version. */
+#canvasWrap.preview-mode{box-shadow:inset 0 0 0 3px var(--accent2);}
+#canvasWrap.preview-mode::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 22px rgba(174,144,38,.25);z-index:150;}
 .hint{font-size:11px;color:var(--muted);line-height:1.5;}
 .btn-row{display:flex;gap:5px;}.btn-row button{flex:1;font-size:11px;padding:5px 4px;}
 .classdef-item{display:flex;align-items:center;gap:5px;font-size:11px;padding:3px 0;}

@@ -1,7 +1,7 @@
 import { S } from './state.js';
 import { svgPoint, pushUndo, cloneState, restoreStateFrom, setZoom, fitAll, snapGrid, uid, nodeSize, makeSVG, applyTransform } from './utils.js';
 import { render, renderPorts, renderGroupPorts, updateUndoRedo } from './render.js';
-import { scheduleSnapshot, takeSnapshot, countMutation } from './history.js';
+import { scheduleSnapshot, countMutation } from './history.js';
 import { scheduleSave, doAutoSave } from './file.js';
 import { loadFromMermaidText } from './loader.js';
 import { autoArrange, fitGroupsToMembers } from './layout.js';
@@ -537,9 +537,9 @@ export function initKeyboard() {
       }
       return;
     }
-    // View mode: canvas isn't editable — block editing shortcuts, keep Ctrl+S (snapshot).
+    // View mode: canvas isn't editable — block editing shortcuts, keep Ctrl+S (save).
     if (S.viewMode) {
-      if ((ev.ctrlKey||ev.metaKey) && ev.key==='s') { ev.preventDefault(); takeSnapshot('Manual'); doAutoSave(); document.getElementById('statusText').textContent='Snapshot saved.'; }
+      if ((ev.ctrlKey||ev.metaKey) && ev.key==='s') { ev.preventDefault(); doAutoSave(); document.getElementById('statusText').textContent='Saved.'; }
       return;
     }
     if (ev.key==='Delete'||ev.key==='Backspace') { ev.preventDefault(); deleteSelected(); }
@@ -588,9 +588,8 @@ export function initKeyboard() {
     }
     if ((ev.ctrlKey||ev.metaKey) && ev.key==='s') {
       ev.preventDefault();
-      takeSnapshot('Manual');
       doAutoSave();
-      document.getElementById('statusText').textContent='Snapshot saved.';
+      document.getElementById('statusText').textContent='Saved.';
     }
   });
 }
