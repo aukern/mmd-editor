@@ -8,34 +8,45 @@ import { unifiedDiff, renderReadableDiff } from './diff.js';
 // base → the live head. Preview / Show-changes are wired in a later phase.
 
 let selectedIdx = null;   // index into S.snapshots; null = auto (newest)
-let previewIdx = null;    // index currently shown read-only on the canvas (preview)
+let previewIdx = null;    // index currently shown read-only on the canvas (plain preview)
 let anchors = [];         // hunk jump targets in the body
 let anchorIdx = -1;
+
+// "Show changes" compare mode. When active, overlayPair freezes the {old,new} being
+// compared so flipping the canvas between the two sides can't corrupt it. showOld = the
+// canvas is currently on the OLD side (where removed items are drawn in red).
+let overlayPair = null;   // { old, new } or null
+let showOld = false;
 
 function liveSource() {
   return getCurrentSource ? getCurrentSource() : (document.getElementById('mmdOut')?.value || '');
 }
 
-// The comparison shown for a selected row. Selecting a version shows the change that
-// version INTRODUCED — its predecessor → itself — so a row's changes belong to that row
-// (your current edits show on the current row, not the previous one). Special cases:
+// The change a selected version INTRODUCED — its predecessor → itself — so a row's changes
+// belong to that row (your current edits show on the current row, not the previous one).
 //   • newest row → its content is the live head (reflects in-progress edits).
 //   • oldest row → base = itself (nothing before it): the starting point, no diff.
-//   • previewing a DIFFERENT row P → compare-two: selected → P.
-function comparisonFor(idx) {
+function rawComparisonFor(idx) {
   const snaps = S.snapshots || [];
   const n = snaps.length;
   const s = snaps[idx];
   if (!s) return { base: '', target: '', author: 'human', mode: 'empty' };
-  if (S.previewMode && previewIdx !== null && previewIdx !== idx && snaps[previewIdx]) {
-    return { base: s.mmd, target: snaps[previewIdx].mmd, author: snaps[previewIdx].author, mode: 'compare' };
-  }
-  // Content of the selected version: live head for the newest, previewed content if
-  // we're previewing exactly this row, else the stored snapshot.
-  const target = (S.previewMode && previewIdx === idx) ? s.mmd
-               : (idx === n - 1 ? liveSource() : s.mmd);
+  // While flipping sides in compare mode the canvas shows an old version, so never read
+  // liveSource() here for the newest row — use the stored snapshot unless we're truly live.
+  const isLiveNewest = idx === n - 1 && !overlayPair && !(S.previewMode && previewIdx === idx);
+  const target = isLiveNewest ? liveSource() : s.mmd;
   const base = idx > 0 ? snaps[idx - 1].mmd : target;   // oldest: compare to self → empty
   return { base, target, author: s.author, mode: idx === 0 ? 'baseline' : 'change' };
+}
+
+// The active comparison. In compare mode it's the frozen pair (stable across flips);
+// otherwise it's the selected row's own change.
+function comparisonFor(idx) {
+  if (overlayPair) {
+    const s = (S.snapshots || [])[idx];
+    return { base: overlayPair.old, target: overlayPair.new, author: s ? s.author : 'human', mode: 'change' };
+  }
+  return rawComparisonFor(idx);
 }
 
 // Human-friendly relative time from a "YYYY-MM-DD HH:MM:SS" stamp.
@@ -71,7 +82,9 @@ function effectiveIdx() {
 
 // Reset selection to auto — called when the active file/tab changes. Clears preview too
 // so no preview/compare state leaks into another tab.
-export function resetTimelineSelection() { selectedIdx = null; previewIdx = null; anchors = []; anchorIdx = -1; }
+export function resetTimelineSelection() {
+  selectedIdx = null; previewIdx = null; overlayPair = null; showOld = false; anchors = []; anchorIdx = -1;
+}
 
 function updateJumpInfo() {
   const info = document.getElementById('tlJumpInfo');
@@ -100,8 +113,10 @@ export function refreshTimeline() {
   const empty = document.getElementById('tlEmpty');
   if (!list || !out) return;
 
-  // Preview mode is exited elsewhere (banner / Esc); keep our marker in sync.
+  // Preview mode is exited elsewhere (banner / Esc); keep our markers in sync.
   if (!S.previewMode) previewIdx = null;
+  // Leaving preview while comparing means we're back on the live/new side.
+  if (overlayPair && !S.previewMode) showOld = false;
 
   const snaps = S.snapshots || [];
   const idx = effectiveIdx();
@@ -143,10 +158,21 @@ export function refreshTimeline() {
     row.addEventListener('click', () => {
       const n = S.snapshots.length;
       const hist = window._editorHistory || {};
+      const review = window._editorReview || {};
       selectedIdx = i;
-      // Selecting the version you're previewing (comparing to itself) or the live/newest
-      // version drops preview — you can't compare a version to itself, and the newest IS live.
-      if (S.previewMode && (i === previewIdx || i === n - 1) && hist.exitPreview) hist.exitPreview(false);
+      if (overlayPair && review.isOn && review.isOn()) {
+        // Keep "Show changes" on, re-anchored to the newly selected version (auto-update).
+        const raw = rawComparisonFor(i);
+        if (raw.mode === 'empty' || raw.base === raw.target) { endShowChanges(); }
+        else {
+          overlayPair = { old: raw.base, new: raw.target };
+          if (review.showChangesFrom) review.showChangesFrom(overlayPair.old, overlayPair.new);
+          ensureSideCanvas();
+        }
+      } else if (S.previewMode && (i === previewIdx || i === n - 1) && hist.exitPreview) {
+        // Selecting the previewed row (compare-to-self) or the live/newest row drops preview.
+        hist.exitPreview(false);
+      }
       refreshTimeline();
     });
     list.appendChild(row);
@@ -159,9 +185,9 @@ export function refreshTimeline() {
   updateJumpInfo();
   updateStat(res.adds, res.dels, cmp);
   updateButtons();
-  // Keep an active "Show changes" overlay pointed at this row's base so switching rows
-  // updates the highlights automatically (no need to re-toggle).
-  if (window._editorReview && window._editorReview.reanchorOverlay) window._editorReview.reanchorOverlay(cmp.base);
+  // Keep an active "Show changes" overlay pointed at this comparison so switching rows or
+  // flipping sides updates the highlights automatically (no need to re-toggle).
+  if (window._editorReview && window._editorReview.reanchorOverlay) window._editorReview.reanchorOverlay(cmp.base, cmp.target);
 }
 
 // Enable/disable + relabel the Preview / Show-changes buttons for the current selection.
@@ -184,6 +210,15 @@ function updateButtons() {
     showBtn.disabled = nothing && !overlayOn;
     showBtn.classList.toggle('active', overlayOn);
     showBtn.textContent = overlayOn ? '⧉ Hide changes' : '⧉ Show changes';
+  }
+  // Flip New/Old is only meaningful for view-mode diagrams (flowcharts draw removed items
+  // in place as ghosts, so there's nothing to flip to).
+  const flipBtn = document.getElementById('tlFlipBtn');
+  if (flipBtn) {
+    const canFlip = overlayOn && !!overlayPair && S.viewMode;
+    flipBtn.style.display = canFlip ? '' : 'none';
+    flipBtn.classList.toggle('active', showOld);
+    flipBtn.textContent = showOld ? '⇄ Show New' : '⇄ Show Old (removed)';
   }
 }
 
@@ -249,14 +284,50 @@ function togglePreview() {
   refreshTimeline();
 }
 
-// ⧉ Show changes — highlight ON the diagram the change this version introduced
-// (its predecessor → this version). Stable baseline anchored to that predecessor.
+// Put the correct side of the frozen comparison on the canvas. New side = added/changed;
+// Old side = the previous version, where removed items are drawn in red.
+function ensureSideCanvas() {
+  if (!overlayPair) return;
+  const hist = window._editorHistory || {};
+  const idx = effectiveIdx();
+  const n = S.snapshots.length;
+  if (showOld) {
+    if (hist.enterPreviewOf) hist.enterPreviewOf(overlayPair.old, 'Comparing — PREVIOUS version · removed items in red. Flip to New (or Esc) to return.');
+  } else if (idx === n - 1) {
+    // New side of the newest row IS the live canvas — no preview needed.
+    if (S.previewMode && hist.exitPreview) hist.exitPreview(false);
+  } else if (hist.enterPreviewOf) {
+    hist.enterPreviewOf(overlayPair.new, 'Comparing — this version · added in green. Flip to Old to see removed in red.');
+  }
+}
+
+function endShowChanges() {
+  const review = window._editorReview || {};
+  const hist = window._editorHistory || {};
+  if (review.hideChanges) review.hideChanges();
+  overlayPair = null; showOld = false;
+  if (S.previewMode && hist.exitPreview) hist.exitPreview(false);
+}
+
+// ⧉ Show changes — highlight ON the diagram the change the selected version introduced
+// (predecessor → this version). Freezes the pair so the New/Old flip stays stable.
 function toggleShowChanges() {
   const review = window._editorReview || {};
-  if (review.isOn && review.isOn()) { if (review.hideChanges) review.hideChanges(); refreshTimeline(); return; }
-  const cmp = comparisonFor(effectiveIdx());
-  if (cmp.mode === 'empty') return;
-  if (review.showChangesFrom) review.showChangesFrom(cmp.base);
+  if (review.isOn && review.isOn()) { endShowChanges(); refreshTimeline(); return; }
+  const cmp = rawComparisonFor(effectiveIdx());
+  if (cmp.mode === 'empty' || cmp.base === cmp.target) return;
+  overlayPair = { old: cmp.base, new: cmp.target };
+  showOld = false;
+  if (review.showChangesFrom) review.showChangesFrom(overlayPair.old, overlayPair.new);
+  ensureSideCanvas();
+  refreshTimeline();
+}
+
+// ⇄ Flip the canvas between the New and Old sides of the comparison (view mode only).
+function flipShowSide() {
+  if (!overlayPair) return;
+  showOld = !showOld;
+  ensureSideCanvas();
   refreshTimeline();
 }
 
@@ -267,10 +338,12 @@ export function initTimeline() {
   const nextBtn = document.getElementById('tlNextBtn');
   const previewBtn = document.getElementById('tlPreviewBtn');
   const showBtn = document.getElementById('tlShowBtn');
+  const flipBtn = document.getElementById('tlFlipBtn');
   if (copyBtn) copyBtn.addEventListener('click', copyForAI);
   if (prevBtn) prevBtn.addEventListener('click', () => jump(-1));
   if (nextBtn) nextBtn.addEventListener('click', () => jump(1));
   if (previewBtn) previewBtn.addEventListener('click', togglePreview);
   if (showBtn) showBtn.addEventListener('click', toggleShowChanges);
+  if (flipBtn) flipBtn.addEventListener('click', flipShowSide);
   refreshTimeline();
 }

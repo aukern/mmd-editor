@@ -97,7 +97,7 @@
       <div class="modal-card" id="modalCard">
         <img class="modal-icon" src="assets/logo.svg" alt="">
         <h2>Mermaid Editor</h2>
-        <div class="modal-version">v0.7.2</div>
+        <div class="modal-version">v0.7.3</div>
         <p id="modalSubtitle">Open an existing .mmd file or create a new one. All changes auto-save.</p>
         <button class="modal-btn primary" id="modalOpenBtn">Open existing file…</button>
         <input type="text" id="fileSearchInput" placeholder="Search files…" style="display:none">
@@ -194,7 +194,8 @@
         <pre id="tlOut" class="diff-out"></pre>
         <div class="btn-row" style="margin-top:6px">
           <button id="tlPreviewBtn" title="View the selected version on the canvas (read-only)">👁 Preview</button>
-          <button id="tlShowBtn" title="Highlight on the diagram what changed from the selected version to now">⧉ Show changes</button>
+          <button id="tlShowBtn" title="Highlight on the diagram what this version changed">⧉ Show changes</button>
+          <button id="tlFlipBtn" title="Flip the canvas between the new and previous version — removed items show in red on the previous one" style="display:none">⇄ Show Old (removed)</button>
         </div>
         <div class="btn-row" style="margin-top:5px">
           <button id="tlCopyBtn" title="Copy the changes from the selected version to now, for the AI">📋 Copy for AI</button>

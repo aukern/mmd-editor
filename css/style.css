@@ -84,6 +84,8 @@ svg#canvas{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visibl
 #viewLayer .rv-vrect{stroke-width:1.5;}
 #viewLayer .rv-vrect-changed{fill:rgba(210,183,77,.28);stroke:var(--accent2);}
 #viewLayer .rv-vrect-added{fill:rgba(94,194,105,.28);stroke:#3fb950;}
+#viewLayer .rv-vrect-removed{fill:rgba(224,108,108,.30);stroke:#e06c6c;}
+#tlFlipBtn.active{background:var(--accent2);border-color:var(--accent2);color:#0f1014;font-weight:600;}
 .review-chip{position:absolute;top:10px;right:12px;max-width:70%;z-index:210;background:rgba(26,27,32,.94);border:1px solid var(--border);border-radius:8px;padding:5px 11px;font-size:12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;}
 .review-chip .rc-add{color:#7ed488;font-weight:600;}
 .review-chip .rc-chg{color:var(--accent2);font-weight:600;}

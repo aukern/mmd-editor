@@ -3,6 +3,17 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.7.3] — 2026-07-17
+
+### See removed items on non-flowchart diagrams (switchable New/Old view)
+- **"Show changes" on view-mode diagrams (sequence, ER, state, class…) now lets you flip
+  between the new and previous version.** On the new side, added elements glow green and
+  changed ones amber. Press **⇄ Show Old** and the canvas flips to the previous version,
+  where **removed elements are highlighted in red** — so you can actually *see* what was
+  deleted, which can't be drawn on the new diagram. Flipping keeps the same comparison and
+  updates automatically as you switch versions. (Flowcharts already show deletions in place
+  as red ghosts, so they don't need the flip.)
+
 ## [0.7.2] — 2026-07-17
 
 ### Timeline / preview fixes — tabs are now independent
@@ -236,6 +247,7 @@ First public release.
 - Installers for Linux (AppImage, deb), Windows (nsis, portable), and macOS (universal dmg),
   published from a tag via GitHub Actions.
 
+[0.7.3]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.3
 [0.7.2]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.2
 [0.7.1]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.1
 [0.7.0]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.0
