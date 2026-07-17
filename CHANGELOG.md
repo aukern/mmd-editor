@@ -3,6 +3,19 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.7.2] — 2026-07-17
+
+### Timeline / preview fixes — tabs are now independent
+- **Preview no longer bleeds across tabs.** Preview and the "Show changes" overlay are
+  transient view states, not tab content; switching or closing a tab now drops out of both
+  first — so cancelling a preview can't affect a different tab, and the tab's *live* content
+  (not a previewed snapshot) is what gets saved.
+- **You can't preview the current version, and returning to it exits preview.** The newest
+  row is the live canvas; its Preview button is disabled, and selecting it (or the version
+  you're previewing) drops preview instead of leaving a stale "preview" state.
+- **Comparing a version to itself is greyed out**, and selecting the version you're
+  previewing cancels the preview rather than showing an empty comparison.
+
 ## [0.7.1] — 2026-07-17
 
 ### Fixes
@@ -223,6 +236,7 @@ First public release.
 - Installers for Linux (AppImage, deb), Windows (nsis, portable), and macOS (universal dmg),
   published from a tag via GitHub Actions.
 
+[0.7.2]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.2
 [0.7.1]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.1
 [0.7.0]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.0
 [0.1.0]: https://github.com/aukern/mmd-editor/releases/tag/v0.1.0

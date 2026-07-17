@@ -69,8 +69,9 @@ function effectiveIdx() {
   return selectedIdx;
 }
 
-// Reset selection to auto — called when the active file/tab changes.
-export function resetTimelineSelection() { selectedIdx = null; anchors = []; anchorIdx = -1; }
+// Reset selection to auto — called when the active file/tab changes. Clears preview too
+// so no preview/compare state leaks into another tab.
+export function resetTimelineSelection() { selectedIdx = null; previewIdx = null; anchors = []; anchorIdx = -1; }
 
 function updateJumpInfo() {
   const info = document.getElementById('tlJumpInfo');
@@ -139,7 +140,15 @@ export function refreshTimeline() {
       `<span class="tl-stat">${stat}</span>` +
       (i === previewIdx ? `<span class="tl-badge">preview</span>` : '');
     row.title = s.ts;
-    row.addEventListener('click', () => { selectedIdx = i; refreshTimeline(); });
+    row.addEventListener('click', () => {
+      const n = S.snapshots.length;
+      const hist = window._editorHistory || {};
+      selectedIdx = i;
+      // Selecting the version you're previewing (comparing to itself) or the live/newest
+      // version drops preview — you can't compare a version to itself, and the newest IS live.
+      if (S.previewMode && (i === previewIdx || i === n - 1) && hist.exitPreview) hist.exitPreview(false);
+      refreshTimeline();
+    });
     list.appendChild(row);
   }
 
@@ -163,8 +172,10 @@ function updateButtons() {
   const showBtn = document.getElementById('tlShowBtn');
   const overlayOn = !!(window._editorReview && window._editorReview.isOn && window._editorReview.isOn());
 
+  const n = (S.snapshots || []).length;
   if (previewBtn) {
-    previewBtn.disabled = cmp.mode === 'empty';
+    // Can't preview the newest row (it's the live canvas) or an empty timeline.
+    previewBtn.disabled = cmp.mode === 'empty' || idx === n - 1;
     previewBtn.textContent = (S.previewMode && previewIdx === idx) ? '✕ Exit preview' : '👁 Preview';
   }
   if (showBtn) {
@@ -225,15 +236,15 @@ function copyForAI() {
 // preview machinery + banner). Pressing again exits.
 function togglePreview() {
   const idx = effectiveIdx();
+  const n = S.snapshots.length;
   const s = S.snapshots[idx];
   if (!s) return;
   const hist = window._editorHistory || {};
-  if (S.previewMode && previewIdx === idx) {
-    if (hist.exitPreview) hist.exitPreview(false);   // back to live
-    return;
-  }
+  // The newest row IS the live canvas — nothing to preview; make sure we're live.
+  if (idx === n - 1) { if (S.previewMode && hist.exitPreview) hist.exitPreview(false); return; }
+  if (S.previewMode && previewIdx === idx) { if (hist.exitPreview) hist.exitPreview(false); return; }
   const tag = authorTag(s.author);
-  if (hist.enterPreviewOf) hist.enterPreviewOf(s.mmd, `Preview: ${tag.name} · ${s.ts} — restore or cancel via banner`);
+  if (hist.enterPreviewOf) hist.enterPreviewOf(s.mmd, `Previewing ${tag.name}'s version · ${s.ts} — Esc or the banner to return`);
   previewIdx = idx;
   refreshTimeline();
 }

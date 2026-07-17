@@ -180,8 +180,19 @@ export function renderTabBar() {
   if (window._editorSession && window._editorSession.save) window._editorSession.save();
 }
 
+// Preview and the "Show changes" overlay are transient view states, not part of a tab's
+// content. Leaving a tab must drop them so nothing bleeds across tabs (and so we capture
+// the tab's LIVE content, never a previewed snapshot). Called before capturing state.
+function dropTransientViews() {
+  const hist = window._editorHistory || {};
+  if (S.previewMode && hist.exitPreview) hist.exitPreview(false);
+  const review = window._editorReview || {};
+  if (review.isOn && review.isOn() && review.hideChanges) review.hideChanges();
+}
+
 export function switchTab(idx) {
   if (idx === S.activeTabIdx) return;
+  dropTransientViews();
   captureTabState();
   S.activeTabIdx = idx;
   restoreTabState(S.tabs[idx]);  // syncModal called inside restoreTabState
@@ -201,7 +212,7 @@ export function switchTab(idx) {
 }
 
 export function closeTab(idx) {
-  if (idx === S.activeTabIdx) captureTabState();
+  if (idx === S.activeTabIdx) { dropTransientViews(); captureTabState(); }
   S.tabs.splice(idx, 1);
   if (S.tabs.length === 0) {
     S.activeTabIdx = -1;
