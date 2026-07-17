@@ -90,7 +90,10 @@ async function autoReloadFromDisk(filename) {
       // shows exactly what this (external/AI) sync changed.
       const { setBaselineToCurrent } = window._editorReview || {};
       if (setBaselineToCurrent) setBaselineToCurrent();
-      S.snapshots = [];
+      // Adopt the file's own history if it carries any; otherwise KEEP the in-memory
+      // timeline so the incoming (AI) change has a predecessor to diff against. Wiping it
+      // here left snap-less files (e.g. a fresh sequence diagram) with a lone AI row and
+      // nothing to compare — an empty timeline.
       const snaps = extractSnapshotsFromText(text);
       if (snaps.length) S.snapshots = snaps;
       loadFromMermaidText(text, true);
@@ -128,7 +131,8 @@ export async function reloadActiveFromDisk() {
     // Baseline the pre-refresh content so the overlay shows what changed while away.
     const { setBaselineToCurrent } = window._editorReview || {};
     if (setBaselineToCurrent) setBaselineToCurrent();
-    S.snapshots = [];
+    // Keep the in-memory timeline unless the file carries its own history (see
+    // autoReloadFromDisk) so a snap-less file's AI change still has a baseline to diff.
     const snaps = extractSnapshotsFromText(text);
     if (snaps.length) S.snapshots = snaps;
     loadFromMermaidText(text, true);

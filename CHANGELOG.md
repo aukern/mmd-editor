@@ -3,6 +3,16 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.7.1] — 2026-07-17
+
+### Fixes
+- **A file with no stored history no longer loses its timeline on an external sync.**
+  Reloading a changed-on-disk file wiped the in-memory timeline and, if the file carried
+  no `%% snap:` history of its own (e.g. a fresh sequence/other view-mode diagram), left a
+  single 🤖 AI entry with nothing before it — an empty diff. The reload now keeps the
+  in-memory history unless the file supplies its own, so the AI change always has a
+  baseline to diff against.
+
 ## [0.7.0] — 2026-07-17
 
 ### Light-git timeline (replaces snapshots, History, checkpoint diff, and the change overlay)
@@ -213,5 +223,6 @@ First public release.
 - Installers for Linux (AppImage, deb), Windows (nsis, portable), and macOS (universal dmg),
   published from a tag via GitHub Actions.
 
+[0.7.1]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.1
 [0.7.0]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.0
 [0.1.0]: https://github.com/aukern/mmd-editor/releases/tag/v0.1.0
