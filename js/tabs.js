@@ -190,6 +190,12 @@ export function switchTab(idx) {
   renderTabBar();
   const { refreshHistoryPanel } = window._editorHistory || {};
   if (refreshHistoryPanel) refreshHistoryPanel();
+  // View-mode tabs aren't followed by the live watcher while inactive — re-read from
+  // disk on switch so an external (AI) edit made while it was hidden shows up.
+  if (S.viewMode && S.currentFilename) {
+    const { reloadActiveFromDisk } = window._editorFile || {};
+    if (reloadActiveFromDisk) reloadActiveFromDisk();
+  }
 }
 
 export function closeTab(idx) {

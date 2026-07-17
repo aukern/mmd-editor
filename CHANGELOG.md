@@ -3,6 +3,16 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.6.1] — 2026-07-09
+
+### Change-review fixes
+- **Removed connections are now shown.** When a node is deleted, the edges that led into
+  and out of it are drawn as dashed ghost lines to the ghost box — so you can see *where*
+  the removed box sat, not just that something vanished into empty space.
+- **View-mode diagrams refresh when you switch to their tab.** The live watcher only
+  follows the active tab, so an AI edit to a background (e.g. sequence) diagram used to go
+  unnoticed; switching to that tab now re-reads it from disk and re-applies the highlight.
+
 ## [0.6.0] — 2026-07-09
 
 ### Visual change review (new — first cut)

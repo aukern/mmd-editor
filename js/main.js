@@ -3,7 +3,7 @@ import { applyTransform, pushUndo, cloneState, fitAll, setZoom, svgPoint, nodeSi
 import { render, updateUndoRedo, updateMermaidOutput, getMermaidText, getCurrentSource } from './render.js';
 import { loadFromMermaidText } from './loader.js';
 import { takeSnapshot, scheduleSnapshot, countMutation, buildFileContent, refreshHistoryPanel, initHistoryPanel } from './history.js';
-import { scheduleSave, doAutoSave, startFileWatcher, stopFileWatcher, serverMtime, serverRead, updateSaveStatus, initFilenameRename } from './file.js';
+import { scheduleSave, doAutoSave, startFileWatcher, stopFileWatcher, serverMtime, serverRead, reloadActiveFromDisk, updateSaveStatus, initFilenameRename } from './file.js';
 import { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab, loadIntoCurrentTab, syncModal } from './tabs.js';
 import { initCanvasEvents, initToolbar, initKeyboard, addNode, addGroup, addEdge, deleteSelected, copySelection, pasteClipboard, duplicateSelection, getPortMousedownHandler, spawnConnectGhost, updateCanvasCursor } from './events.js';
 import { initInline, activateInline, cancelInline } from './ui/inline.js';
@@ -21,7 +21,7 @@ window._editorUtils = { pushUndo, cloneState, fitAll, setZoom, applyTransform, s
 window._editorRender = { render, updateMermaidOutput, getMermaidText, getCurrentSource };
 window._editorInline = { activateInline, scheduleSnapshot };
 window._editorMutations = { addEdge, takeSnapshot, addNode, deleteSelected, copySelection, pasteClipboard, duplicateSelection };
-window._editorFile = { scheduleSave, doAutoSave, startFileWatcher, stopFileWatcher, serverMtime, updateSaveStatus };
+window._editorFile = { scheduleSave, doAutoSave, startFileWatcher, stopFileWatcher, serverMtime, reloadActiveFromDisk, updateSaveStatus };
 window._editorLoad = { loadFromMermaidText };
 window._editorHistory = { refreshHistoryPanel, takeSnapshot, buildFileContent, countMutation };
 window._editorTabs = { captureTabState, restoreTabState, renderTabBar, switchTab, closeTab, openInNewTab, newTab, loadIntoCurrentTab, syncModal };

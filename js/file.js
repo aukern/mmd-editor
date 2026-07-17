@@ -104,6 +104,25 @@ async function autoReloadFromDisk(filename) {
   }
 }
 
+// Re-read the active file from disk without touching diff baselines. Used when
+// switching to a tab whose file may have changed while it was inactive (the live
+// watcher only follows the active tab). The change-review overlay recomputes against
+// its own per-file baseline, so external edits still highlight.
+export async function reloadActiveFromDisk() {
+  if (!S.currentFilename) return;
+  try {
+    const text = await serverRead(S.currentFilename);
+    const { loadFromMermaidText } = window._editorLoad || {};
+    if (!loadFromMermaidText) return;
+    S.snapshots = [];
+    const snaps = extractSnapshotsFromText(text);
+    if (snaps.length) S.snapshots = snaps;
+    loadFromMermaidText(text, true);
+    const mtime = await serverMtime(S.currentFilename);
+    if (mtime !== null) S.lastKnownMtime = mtime;
+  } catch (e) { /* stale tab; leave cached content */ }
+}
+
 export function setFilename(name) {
   S.currentFilename = name;
   const el = document.getElementById('filenameDisplay');
