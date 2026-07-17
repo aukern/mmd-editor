@@ -3,6 +3,20 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.6.3] — 2026-07-09
+
+### Change-review fixes
+- **Ghost boxes no longer overlap live nodes.** A deleted box with a single surviving
+  neighbour was placed right on top of it; it now sits clearly beside it.
+- **Switching tabs no longer wipes the other diagram's highlights.** The tab-switch
+  disk-refresh only runs when the file actually changed on disk, so it stops resetting an
+  untouched diagram's review baseline.
+- **View-mode overlay now tells added / changed / removed apart.** Added elements get a
+  green box, changed ones an amber box, and removed items are listed by name in the chip
+  (they can't be drawn in place without controlling Mermaid's layout). Removed/added are
+  matched by text similarity so an unrelated remove+add is no longer mislabelled as a
+  change, and message labels are read correctly (no more grabbing "(diff)" out of a line).
+
 ## [0.6.2] — 2026-07-09
 
 ### Change-review fixes (this makes it actually work)

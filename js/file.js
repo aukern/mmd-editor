@@ -116,6 +116,11 @@ export async function reloadActiveFromDisk() {
   if (!S.currentFilename) return;
   try {
     const text = await serverRead(S.currentFilename);
+    // If nothing changed on disk while this tab was inactive, leave it — and its review
+    // baseline — completely alone. (Resetting the baseline here is what made switching
+    // tabs wipe the other diagram's highlights.)
+    const stripped = text.split('\n').filter(l => !l.trimStart().startsWith('%% snap:')).join('\n').trim();
+    if (S.viewMode && stripped === (S.rawText || '').trim()) return;
     const { loadFromMermaidText } = window._editorLoad || {};
     if (!loadFromMermaidText) return;
     // Baseline the pre-refresh content so the overlay shows what changed while away.

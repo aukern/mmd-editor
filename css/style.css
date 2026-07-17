@@ -81,9 +81,14 @@ svg#canvas{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visibl
 .rv-ghost-label{fill:#e06c6c;font-size:12px;text-decoration:line-through;}
 .rv-ghost-edge{stroke:#e06c6c;stroke-width:2;stroke-dasharray:5,4;opacity:.7;}
 /* View mode (Mermaid SVG hijack): a crisp highlight box behind each changed element */
-#viewLayer .rv-vrect{fill:rgba(210,183,77,.28);stroke:var(--accent2);stroke-width:1.5;}
-.review-chip{position:absolute;top:10px;right:12px;z-index:210;background:rgba(26,27,32,.92);border:1px solid var(--accent2);border-radius:8px;padding:5px 11px;font-size:12px;color:var(--accent2);display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;}
-.review-chip .rc-dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);flex-shrink:0;}
+#viewLayer .rv-vrect{stroke-width:1.5;}
+#viewLayer .rv-vrect-changed{fill:rgba(210,183,77,.28);stroke:var(--accent2);}
+#viewLayer .rv-vrect-added{fill:rgba(94,194,105,.28);stroke:#3fb950;}
+.review-chip{position:absolute;top:10px;right:12px;max-width:70%;z-index:210;background:rgba(26,27,32,.94);border:1px solid var(--border);border-radius:8px;padding:5px 11px;font-size:12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;}
+.review-chip .rc-add{color:#7ed488;font-weight:600;}
+.review-chip .rc-chg{color:var(--accent2);font-weight:600;}
+.review-chip .rc-del{color:#ec8686;font-weight:600;}
+.review-chip .rc-sep{color:var(--muted);}
 #reviewToggleBtn.active{background:var(--accent);border-color:var(--accent);color:#1a1600;}
 /* Controls disabled while in view mode */
 #toolbar .vm-disabled{opacity:.35;pointer-events:none;}
