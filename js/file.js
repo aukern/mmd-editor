@@ -86,6 +86,10 @@ async function autoReloadFromDisk(filename) {
     const text = await serverRead(filename);
     const { loadFromMermaidText } = window._editorLoad || {};
     if (loadFromMermaidText) {
+      // Capture the pre-reload content as the change-review baseline so the overlay
+      // shows exactly what this (external/AI) sync changed.
+      const { setBaselineToCurrent } = window._editorReview || {};
+      if (setBaselineToCurrent) setBaselineToCurrent();
       S.snapshots = [];
       const snaps = extractSnapshotsFromText(text);
       if (snaps.length) S.snapshots = snaps;
@@ -114,6 +118,9 @@ export async function reloadActiveFromDisk() {
     const text = await serverRead(S.currentFilename);
     const { loadFromMermaidText } = window._editorLoad || {};
     if (!loadFromMermaidText) return;
+    // Baseline the pre-refresh content so the overlay shows what changed while away.
+    const { setBaselineToCurrent } = window._editorReview || {};
+    if (setBaselineToCurrent) setBaselineToCurrent();
     S.snapshots = [];
     const snaps = extractSnapshotsFromText(text);
     if (snaps.length) S.snapshots = snaps;

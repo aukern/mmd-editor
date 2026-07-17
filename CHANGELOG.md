@@ -3,6 +3,18 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.6.2] — 2026-07-09
+
+### Change-review fixes (this makes it actually work)
+- **View-mode highlights now render.** They were being applied as a CSS class on the
+  wrong element, so the count was right but nothing showed. Now a crisp highlight box is
+  drawn behind each changed element — reliable on any Mermaid SVG.
+- **An AI edit always shows its exact delta.** The review baseline is now snapshotted just
+  before every external sync, so the overlay reflects precisely what that change did
+  (previously the baseline could drift to equal the current content, leaving the flowchart
+  overlay blank).
+- Overlay code is wrapped in guards so a single bad case can never blank the whole thing.
+
 ## [0.6.1] — 2026-07-09
 
 ### Change-review fixes
