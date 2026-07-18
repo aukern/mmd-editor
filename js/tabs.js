@@ -87,6 +87,13 @@ function tabFolder(tab) {
 // Drag-reorder state (only within the same folder group).
 let dragTabIdx = null, dragTabFolder = null;
 
+// Folder tab-groups can be collapsed; the set of collapsed folders persists across launches.
+const TAB_GROUPS_KEY = 'mmd.collapsedTabGroups';
+let collapsedFolders;
+try { collapsedFolders = new Set(JSON.parse(localStorage.getItem(TAB_GROUPS_KEY) || '[]')); }
+catch (e) { collapsedFolders = new Set(); }
+function saveCollapsedFolders() { try { localStorage.setItem(TAB_GROUPS_KEY, JSON.stringify([...collapsedFolders])); } catch (e) {} }
+
 function reorderTab(fromIdx, toIdx) {
   if (fromIdx === toIdx) return;
   const active = S.activeTabIdx >= 0 ? S.tabs[S.activeTabIdx] : null;
@@ -156,16 +163,27 @@ export function renderTabBar() {
   };
 
   groups.forEach(grp => {
+    const isCollapsed = !!grp.folder && collapsedFolders.has(grp.folder);
     const gEl = document.createElement('div');
-    gEl.className = 'tab-group' + (grp.folder ? '' : ' rootgroup');
+    gEl.className = 'tab-group' + (grp.folder ? '' : ' rootgroup') + (isCollapsed ? ' collapsed' : '');
     if (grp.folder) {
       const lbl = document.createElement('span');
       lbl.className = 'tab-group-label';
-      lbl.textContent = grp.folder.split('/').pop();   // leaf folder name
-      lbl.title = grp.folder;
+      lbl.innerHTML = `<span class="tg-arrow">${isCollapsed ? '▸' : '▾'}</span><span class="tg-name"></span>` +
+                      (isCollapsed ? `<span class="tg-count">${grp.items.length}</span>` : '');
+      lbl.querySelector('.tg-name').textContent = grp.folder.split('/').pop();   // leaf folder name
+      lbl.title = grp.folder + ' — click to ' + (isCollapsed ? 'expand' : 'collapse');
+      lbl.addEventListener('click', () => {
+        if (collapsedFolders.has(grp.folder)) collapsedFolders.delete(grp.folder); else collapsedFolders.add(grp.folder);
+        saveCollapsedFolders();
+        renderTabBar();
+      });
       gEl.appendChild(lbl);
     }
-    grp.items.forEach(({ tab, idx }) => gEl.appendChild(makeTab(tab, idx, grp.folder)));
+    // Collapsed folder: hide its tabs, but still surface the active one so you never lose
+    // track of where you are.
+    const items = isCollapsed ? grp.items.filter(({ idx }) => idx === S.activeTabIdx) : grp.items;
+    items.forEach(({ tab, idx }) => gEl.appendChild(makeTab(tab, idx, grp.folder)));
     bar.appendChild(gEl);
   });
 

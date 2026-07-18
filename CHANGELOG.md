@@ -3,6 +3,19 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.8.0] — 2026-07-17
+
+### Sidebar & tabs — less clutter
+- **The Timeline is now the top section of the right sidebar**, so version history and the
+  change tools are the first thing you see.
+- **Collapsed sidebar sections stay collapsed across launches.** Fold away the sections you
+  don't use and they'll be that way next time you open the app.
+- **Tab folder-groups can be collapsed.** Click a folder label in the tab bar to fold its
+  tabs away (with a count badge); the active tab still shows so you don't lose your place.
+  Which groups are collapsed is remembered between launches.
+- The Timeline's **⇄ Show Old** button label was shortened so it no longer runs off the
+  panel.
+
 ## [0.7.3] — 2026-07-17
 
 ### See removed items on non-flowchart diagrams (switchable New/Old view)
@@ -247,6 +260,7 @@ First public release.
 - Installers for Linux (AppImage, deb), Windows (nsis, portable), and macOS (universal dmg),
   published from a tag via GitHub Actions.
 
+[0.8.0]: https://github.com/aukern/mmd-editor/releases/tag/v0.8.0
 [0.7.3]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.3
 [0.7.2]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.2
 [0.7.1]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.1

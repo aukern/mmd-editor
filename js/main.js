@@ -31,12 +31,37 @@ window._editorEvents = { spawnConnectGhost, updateCanvasCursor };
 window._editorViewmode = { enterViewMode, exitViewMode, renderViewDiagram, fitViewDiagram, detectDiagramType };
 
 // Collapsible sidebar sections. Clicking a section header toggles it; clicks on
-// interactive controls inside a header (e.g. the Expand button) are ignored.
+// interactive controls inside a header (e.g. the Expand button) are ignored. The
+// collapsed/expanded state of each section is persisted across launches (localStorage),
+// so the panel stays how you left it — less clutter on reopen.
 function initCollapsibleSidebar() {
-  document.querySelectorAll('#sidebar .sb-head').forEach(head => {
+  const KEY = 'mmd.collapsedSections';
+  const sections = [...document.querySelectorAll('#sidebar .sb-section')];
+  const keyOf = s => s.id || (s.querySelector('.sb-title')?.textContent || '').trim();
+
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) {}
+  let collapsed;
+  if (raw == null) {
+    // First run: seed from whatever the markup authored as collapsed (e.g. Properties).
+    collapsed = new Set(sections.filter(s => s.classList.contains('collapsed')).map(keyOf).filter(Boolean));
+  } else {
+    try { collapsed = new Set(JSON.parse(raw)); } catch (e) { collapsed = new Set(); }
+  }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify([...collapsed])); } catch (e) {} };
+  save();   // persist the seed on first run so the state is authoritative thereafter
+
+  sections.forEach(section => {
+    const k = keyOf(section);
+    if (k) section.classList.toggle('collapsed', collapsed.has(k));
+    const head = section.querySelector('.sb-head');
+    if (!head) return;
     head.addEventListener('click', ev => {
       if (ev.target.closest('button, input, select, textarea, a')) return;
-      head.parentElement.classList.toggle('collapsed');
+      const isCollapsed = section.classList.toggle('collapsed');
+      if (!k) return;
+      if (isCollapsed) collapsed.add(k); else collapsed.delete(k);
+      save();
     });
   });
 }

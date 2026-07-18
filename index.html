@@ -97,7 +97,7 @@
       <div class="modal-card" id="modalCard">
         <img class="modal-icon" src="assets/logo.svg" alt="">
         <h2>Mermaid Editor</h2>
-        <div class="modal-version">v0.7.3</div>
+        <div class="modal-version">v0.8.0</div>
         <p id="modalSubtitle">Open an existing .mmd file or create a new one. All changes auto-save.</p>
         <button class="modal-btn primary" id="modalOpenBtn">Open existing file…</button>
         <input type="text" id="fileSearchInput" placeholder="Search files…" style="display:none">
@@ -152,6 +152,31 @@
       <span class="stb-title">Panels</span>
       <button id="sidebarCollapseBtn" title="Hide side panel (Ctrl+\)">⟩⟩</button>
     </div>
+
+    <div class="sb-section" id="timelinePanel">
+      <div class="sb-head"><span class="sb-title">Timeline</span>
+        <span class="diff-nav" style="margin-left:auto">
+          <button id="tlPrevBtn" title="Previous change">▲</button>
+          <span id="tlJumpInfo" class="hint"></span>
+          <button id="tlNextBtn" title="Next change">▼</button>
+        </span>
+      </div>
+      <div class="sb-body">
+        <div id="tlList" class="tl-list"></div>
+        <div id="tlEmpty" class="hint" style="display:none">No history yet — your edits and AI changes appear here.</div>
+        <pre id="tlOut" class="diff-out"></pre>
+        <div class="btn-row" style="margin-top:6px">
+          <button id="tlPreviewBtn" title="View the selected version on the canvas (read-only)">👁 Preview</button>
+          <button id="tlShowBtn" title="Highlight on the diagram what this version changed">⧉ Show changes</button>
+          <button id="tlFlipBtn" title="Flip between the new and previous version — removed items show in red on the previous one" style="display:none">⇄ Show Old</button>
+        </div>
+        <div class="btn-row" style="margin-top:5px">
+          <button id="tlCopyBtn" title="Copy the changes from the selected version to now, for the AI">📋 Copy for AI</button>
+        </div>
+        <div id="tlStatus" class="hint" style="margin-top:2px"></div>
+      </div>
+    </div>
+
     <div class="sb-section">
       <div class="sb-head"><span class="sb-title">Class definitions</span></div>
       <div class="sb-body">
@@ -177,30 +202,6 @@
         </div>
         <div class="btn-row" style="margin-top:6px"><button id="copyBtn">Copy</button></div>
         <p class="hint" style="margin-top:2px">Editable — changes apply live and are undoable.</p>
-      </div>
-    </div>
-
-    <div class="sb-section" id="timelinePanel">
-      <div class="sb-head"><span class="sb-title">Timeline</span>
-        <span class="diff-nav" style="margin-left:auto">
-          <button id="tlPrevBtn" title="Previous change">▲</button>
-          <span id="tlJumpInfo" class="hint"></span>
-          <button id="tlNextBtn" title="Next change">▼</button>
-        </span>
-      </div>
-      <div class="sb-body">
-        <div id="tlList" class="tl-list"></div>
-        <div id="tlEmpty" class="hint" style="display:none">No history yet — your edits and AI changes appear here.</div>
-        <pre id="tlOut" class="diff-out"></pre>
-        <div class="btn-row" style="margin-top:6px">
-          <button id="tlPreviewBtn" title="View the selected version on the canvas (read-only)">👁 Preview</button>
-          <button id="tlShowBtn" title="Highlight on the diagram what this version changed">⧉ Show changes</button>
-          <button id="tlFlipBtn" title="Flip the canvas between the new and previous version — removed items show in red on the previous one" style="display:none">⇄ Show Old (removed)</button>
-        </div>
-        <div class="btn-row" style="margin-top:5px">
-          <button id="tlCopyBtn" title="Copy the changes from the selected version to now, for the AI">📋 Copy for AI</button>
-        </div>
-        <div id="tlStatus" class="hint" style="margin-top:2px"></div>
       </div>
     </div>
 

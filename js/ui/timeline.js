@@ -218,7 +218,7 @@ function updateButtons() {
     const canFlip = overlayOn && !!overlayPair && S.viewMode;
     flipBtn.style.display = canFlip ? '' : 'none';
     flipBtn.classList.toggle('active', showOld);
-    flipBtn.textContent = showOld ? '⇄ Show New' : '⇄ Show Old (removed)';
+    flipBtn.textContent = showOld ? '⇄ Show New' : '⇄ Show Old';
   }
 }
 
