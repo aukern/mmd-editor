@@ -16,6 +16,7 @@ import { initTimeline, refreshTimeline, resetTimelineSelection } from './ui/time
 import { initReview } from './ui/review.js';
 import { enterViewMode, exitViewMode, renderViewDiagram, fitViewDiagram, detectDiagramType, initViewmode } from './viewmode.js';
 import { autoArrange } from './layout.js';
+import { initUpdateCheck } from './update.js';
 
 // ── Expose globals so cross-module callbacks work without circular imports ─────
 window._editorUtils = { pushUndo, cloneState, fitAll, setZoom, applyTransform, svgPoint, nodeSize };
@@ -146,6 +147,7 @@ function init() {
   initDiffPanel();
   initTimeline();
   initReview();
+  initUpdateCheck();
   initViewmode();
   initCollapsibleSidebar();
   initSidebarCollapse();

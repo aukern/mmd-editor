@@ -41,6 +41,16 @@ async function createWindow() {
     },
   });
 
+  // Open external links (e.g. the update banner's "Download") in the real browser, and
+  // never let the app window navigate away from the local server.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (ev, url) => {
+    if (!url.startsWith(`http://127.0.0.1:${port}`)) { ev.preventDefault(); if (/^https?:\/\//i.test(url)) shell.openExternal(url); }
+  });
+
   mainWindow.loadURL(`http://127.0.0.1:${port}/index.html`);
   // Keep page zoom pinned at 100% — Ctrl+/- and pinch zoom the canvas, not the app.
   mainWindow.webContents.on('did-finish-load', () => {

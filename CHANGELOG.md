@@ -3,6 +3,16 @@
 All notable changes to MMD Editor are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and the [Keep a Changelog](https://keepachangelog.com/) format.
 
+## [0.8.1] — 2026-07-17
+
+### Update notifications
+- **The app now tells you when a newer version is available.** On startup (and periodically)
+  it checks GitHub for the latest release; if one is newer than what you're running, a small
+  dismissible banner appears in the corner with a **Download** link to the release page
+  (opens in your browser). Dismissing it won't nag you again for that version. The check is
+  frontend-only and fails silently when offline. *(It compares against published GitHub
+  Releases, so releases must be tagged/published for it to trigger.)*
+
 ## [0.8.0] — 2026-07-17
 
 ### Sidebar & tabs — less clutter
@@ -260,6 +270,7 @@ First public release.
 - Installers for Linux (AppImage, deb), Windows (nsis, portable), and macOS (universal dmg),
   published from a tag via GitHub Actions.
 
+[0.8.1]: https://github.com/aukern/mmd-editor/releases/tag/v0.8.1
 [0.8.0]: https://github.com/aukern/mmd-editor/releases/tag/v0.8.0
 [0.7.3]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.3
 [0.7.2]: https://github.com/aukern/mmd-editor/releases/tag/v0.7.2
